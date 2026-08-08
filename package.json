@@ -17,6 +17,7 @@
     "db:seed-features:check": "tsx scripts/seed-feature-taxonomy.ts --check",
     "integrations:check": "tsx scripts/check-external-book-apis.ts",
     "recommendations:check": "tsx scripts/check-recommendation-flow.ts",
+    "validation:run": "tsx scripts/run-validation-harness.ts",
     "typecheck": "tsc --noEmit",
     "test": "npm run db:check && npm run typecheck"
   },
