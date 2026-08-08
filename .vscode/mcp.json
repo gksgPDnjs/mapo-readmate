@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "readmate-book-catalog": {
+      "type": "stdio",
+      "command": "npm",
+      "args": ["run", "mcp:books"],
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}

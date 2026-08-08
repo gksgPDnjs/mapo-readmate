@@ -81,7 +81,7 @@ async function renderExplanation(candidate: CatalogCandidate, matches: string[])
 }
 
 export async function findRecommendations(
-  client: postgres.Sql,
+  client: postgres.Sql | postgres.TransactionSql,
   request: RecommendationRequest,
 ): Promise<RecommendationResult> {
   const preferredFeatureCodes = uniqueFeatureCodes(request.preferredFeatureCodes);

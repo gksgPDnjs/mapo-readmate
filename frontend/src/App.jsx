@@ -27,6 +27,7 @@ function App() {
   const [toolScreen, setToolScreen] = useState(() => window.location.hash)
   const [answers, setAnswers] = useState([])
   const [recommendations, setRecommendations] = useState([])
+  const [completedTrait, setCompletedTrait] = useState(null)
 
   useEffect(() => {
     const syncToolScreen = () => setToolScreen(window.location.hash)
@@ -40,23 +41,36 @@ function App() {
     if (index === STEP.START) {
       setAnswers([])
       setRecommendations([])
+      setCompletedTrait(null)
     }
     setStep(index)
   }
   const restart = () => {
     setAnswers([])
     setRecommendations([])
+    setCompletedTrait(null)
     setStep(0)
   }
   const retakeQuiz = () => {
     setAnswers([])
     setRecommendations([])
+    setCompletedTrait(null)
     setStep(1)
   }
   const recordAnswer = (answer) => setAnswers((currentAnswers) => [...currentAnswers, answer])
   const completeDeepQuiz = (nextRecommendations) => {
     setRecommendations(nextRecommendations)
     setStep(STEP.BOOKS)
+  }
+  const completeFirstStageQuiz = (result) => {
+    const trait = result.trait
+    setCompletedTrait({
+      ...trait,
+      emoji: '📚',
+      description: `${trait.axes.map((axis) => axis.label).join(', ')} 성향이 나타났어요.`,
+      keywords: trait.axes.map((axis) => `#${axis.label.replaceAll(' ', '')}`),
+    })
+    setStep(STEP.LOADING)
   }
   const openSetup = () => {
     window.location.hash = 'setup'
@@ -84,10 +98,11 @@ function App() {
       onGoTo={goTo}
       onOpenSetup={openSetup}
       onAnswer={recordAnswer}
+      onFirstStageComplete={completeFirstStageQuiz}
       onRetake={retakeQuiz}
       onDeepComplete={completeDeepQuiz}
       recommendations={recommendations}
-      trait={createTrait(answers)}
+      trait={completedTrait ?? createTrait(answers)}
     />
   )
 }
