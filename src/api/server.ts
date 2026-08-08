@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import Fastify from "fastify";
 import postgres from "postgres";
 import { findRecommendations, type RecommendationRequest } from "./recommendation-service.js";
+import { determineTraitCodeByAi } from "./ai-trait.js";
 
 if (existsSync(".env")) {
   process.loadEnvFile();
@@ -40,9 +41,11 @@ function loadTraitTypes(): TraitTypeInfo[] {
 }
 
 const TRAIT_TYPES = loadTraitTypes();
+const VALID_TRAIT_CODES = new Set(TRAIT_TYPES.map((entry) => entry.code));
+const TRAIT_TYPE_SUMMARY = TRAIT_TYPES.map((entry) => `${entry.code}: ${entry.title} - ${entry.description}`).join("\n");
 
-function firstStageTrait(scores: Record<string, number>) {
-  const axes = Object.entries(firstStageDimensionLabels).map(([dimensionCode, labels]) => {
+function computeAxes(scores: Record<string, number>) {
+  return Object.entries(firstStageDimensionLabels).map(([dimensionCode, labels]) => {
     const score = scores[dimensionCode] ?? 0;
     const rightDominant = score >= 0;
     return {
@@ -54,10 +57,10 @@ function firstStageTrait(scores: Record<string, number>) {
       value: rightDominant ? Math.round((score + 100) / 2) : Math.round((100 - score) / 2),
     };
   });
+}
 
-  const code = axes.map((axis) => axis.letter).join("");
+function buildTrait(code: string, axes: ReturnType<typeof computeAxes>) {
   const type = TRAIT_TYPES.find((entry) => entry.code === code) ?? TRAIT_TYPES[0];
-
   return {
     code,
     name: type.title,
@@ -65,6 +68,12 @@ function firstStageTrait(scores: Record<string, number>) {
     keywords: type.keywords.map((keyword) => `#${keyword}`),
     axes,
   };
+}
+
+function firstStageTrait(scores: Record<string, number>) {
+  const axes = computeAxes(scores);
+  const code = axes.map((axis) => axis.letter).join("");
+  return buildTrait(code, axes);
 }
 
 function firstStageFeatureCodes(scores: Record<string, number>) {
@@ -276,6 +285,31 @@ app.put("/api/sessions/:id/responses", async (request, reply) => {
   return reply.code(204).send();
 });
 
+async function resolveTraitCode(database: postgres.Sql, sessionId: string, ruleBasedCode: string): Promise<string> {
+  const textedResponses = await database<{ dimensionCode: string; prompt: string; label: string }[]>`
+    select question.dimension_code as "dimensionCode", question.prompt, option.label
+    from recommendation.quiz_responses as response
+    join recommendation.quiz_attempts as attempt on attempt.id = response.attempt_id
+    join quiz.questions as question on question.id = response.question_id
+    join lateral jsonb_array_elements_text(response.selected_option_ids) as selected(option_id) on true
+    join quiz.question_options as option on option.id::text = selected.option_id
+    where attempt.session_id = ${sessionId} and response.superseded_at is null
+    order by question.display_order
+  `;
+  if (textedResponses.length !== 12) return ruleBasedCode;
+
+  try {
+    return await determineTraitCodeByAi(
+      textedResponses.map((response) => ({ question: response.prompt, answer: response.label })),
+      TRAIT_TYPE_SUMMARY,
+      VALID_TRAIT_CODES,
+    );
+  } catch (error) {
+    console.warn("AI 성향 판정 실패, 규칙 기반 결과로 대체합니다:", error);
+    return ruleBasedCode;
+  }
+}
+
 app.post("/api/sessions/:id/complete", async (request, reply) => {
   const database = requireDatabase(reply);
   if (!database) return;
@@ -306,7 +340,10 @@ app.post("/api/sessions/:id/complete", async (request, reply) => {
       dimension.count += 1;
     }
     const scores = Object.fromEntries(Object.entries(totals).map(([code, total]) => [code, Math.round((total.total / total.count) * 100)]));
-    const trait = firstStageTrait(scores);
+    const axes = computeAxes(scores);
+    const ruleBasedCode = axes.map((axis) => axis.letter).join("");
+    const traitCode = await resolveTraitCode(database, sessionId, ruleBasedCode);
+    const trait = buildTrait(traitCode, axes);
     const recommendationResult = await findRecommendations(transaction, {
       preferredFeatureCodes: firstStageFeatureCodes(scores), avoidedFeatureCodes: [], limit: 3,
     });
