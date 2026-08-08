@@ -1,0 +1,9 @@
+﻿type_code,axis_num,axis_name,type_code,type_name,type_desc
+1,1,purpose,E,지식 탐구형,특정 분야에 대한 학습
+2,1,purpose,I,감정 몰입형,이야기에 몰입
+3,2,language,O,동양선호,"동양의 작품(예:한국, 일본, 중국 등)"
+4,2,language,W,서양선호,"서양의 작품(예: 미국, 영국, 러시아)"
+5,3,popularity,F,유명세 보장,유명한 작가의 보장된 작품
+6,3,popularity,N,신인 발굴,숨겨진 신인 작가의 작품
+7,4,difficulty,S,초보 독자,"난이도 하(글자 수 적음, 배경지식 불필요)"
+8,4,difficulty,H,고수 독자,"난이도 상(깊은 세계관, 배경지식 필요)"
