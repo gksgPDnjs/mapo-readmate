@@ -64,6 +64,7 @@ function App() {
   }
   const completeFirstStageQuiz = (result) => {
     const trait = result.trait
+    setRecommendations(Array.isArray(result.recommendations) ? result.recommendations : [])
     setCompletedTrait({
       ...trait,
       emoji: '📚',
@@ -99,6 +100,7 @@ function App() {
       onOpenSetup={openSetup}
       onAnswer={recordAnswer}
       onFirstStageComplete={completeFirstStageQuiz}
+      onViewRecommendations={() => setStep(STEP.BOOKS)}
       onRetake={retakeQuiz}
       onDeepComplete={completeDeepQuiz}
       recommendations={recommendations}

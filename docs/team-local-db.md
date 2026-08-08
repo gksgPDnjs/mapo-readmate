@@ -88,7 +88,7 @@ npm --prefix frontend run build
 | --- | --- |
 | `/health` | `status: ok`, `database: connected` |
 | `/api/catalog/diagnostics` | 활성 특성 정의와 공개 개발 도서가 JSON으로 반환 |
-| `demo:check` | 12개 1차 답변 저장, 성향 계산, 역할별 3권 추천 저장, 공개 결과 조회, 피드백 저장 통과 |
+| `demo:check` | 12개 1차 답변 저장, 성향 계산, 역할별 3권과 각 추천 이유 저장, 공개 결과 조회, 피드백 저장 통과 |
 | `recommendations:check` | DB 연결, 8개 정밀 문항, 중복 없는 추천 도서 3권 통과 |
 | `npm test` | DB 계약 및 TypeScript 검사 통과 |
 | frontend build | Vite production build 통과 |

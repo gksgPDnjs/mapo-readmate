@@ -4,7 +4,7 @@ import TraitFlipCard from '../components/TraitFlipCard'
 import TraitAxisBar from '../components/TraitAxisBar'
 import './TraitResultScreen.css'
 
-function TraitResultScreen({ onNext, onRetake, trait }) {
+function TraitResultScreen({ onNext, onRetake, onViewRecommendations, trait }) {
   const [flipped, setFlipped] = useState(false)
 
   return (
@@ -30,7 +30,8 @@ function TraitResultScreen({ onNext, onRetake, trait }) {
             ))}
           </div>
           <div className="screen-actions">
-            <Button onClick={onNext}>추천 도서 보기</Button>
+            <Button onClick={onViewRecommendations}>추천 도서 보기</Button>
+            <Button variant="secondary" onClick={onNext}>정밀 조건 더 고르기</Button>
             <Button variant="secondary" onClick={onRetake}>
               다시 분석하기
             </Button>
