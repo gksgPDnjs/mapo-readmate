@@ -12,7 +12,7 @@ type CatalogCandidate = {
   title: string;
   author: string | null;
   description: string | null;
-  featureCodes: string[];
+  featureStrengths: Record<string, number>;
 };
 
 export type Recommendation = {
@@ -25,6 +25,14 @@ export type Recommendation = {
   matchedFeatureCodes: string[];
   explanation: string;
   explanationSource: "template" | "gemini";
+};
+
+export type RecommendationResult = {
+  recommendations: Recommendation[];
+  appliedPreferredFeatureCodes: string[];
+  ignoredPreferredFeatureCodes: string[];
+  appliedAvoidedFeatureCodes: string[];
+  ignoredAvoidedFeatureCodes: string[];
 };
 
 const featureCodePattern = /^[A-Z][A-Z0-9_]{1,63}$/;
@@ -75,7 +83,7 @@ async function renderExplanation(candidate: CatalogCandidate, matches: string[])
 export async function findRecommendations(
   client: postgres.Sql,
   request: RecommendationRequest,
-): Promise<Recommendation[]> {
+): Promise<RecommendationResult> {
   const preferredFeatureCodes = uniqueFeatureCodes(request.preferredFeatureCodes);
   const avoidedFeatureCodes = uniqueFeatureCodes(request.avoidedFeatureCodes);
   const candidates = await client<CatalogCandidate[]>`
@@ -85,7 +93,10 @@ export async function findRecommendations(
       work.canonical_title as title,
       string_agg(distinct contributor.display_name, ', ') as author,
       work.description,
-      coalesce(array_agg(distinct feature.feature_code) filter (where feature.review_status = 'approved'), '{}'::text[]) as "featureCodes"
+      coalesce(
+        jsonb_object_agg(feature.feature_code, feature.strength) filter (where feature.review_status = 'approved'),
+        '{}'::jsonb
+      ) as "featureStrengths"
     from catalog.works as work
     join catalog.editions as edition on edition.work_id = work.id
     left join catalog.work_contributors as work_contributor on work_contributor.work_id = work.id and work_contributor.role_code = 'author'
@@ -98,17 +109,31 @@ export async function findRecommendations(
     limit 100
   `;
 
+  const supportedFeatureCodes = new Set(candidates.flatMap((candidate) => Object.keys(candidate.featureStrengths)));
+  const appliedPreferredFeatureCodes = preferredFeatureCodes.filter((code) => supportedFeatureCodes.has(code));
+  const ignoredPreferredFeatureCodes = preferredFeatureCodes.filter((code) => !supportedFeatureCodes.has(code));
+  const appliedAvoidedFeatureCodes = avoidedFeatureCodes.filter((code) => supportedFeatureCodes.has(code));
+  const ignoredAvoidedFeatureCodes = avoidedFeatureCodes.filter((code) => !supportedFeatureCodes.has(code));
+  const selectedWorkIds = new Set<string>();
   const ranked = candidates
     .map((candidate) => {
-      const matchedFeatureCodes = preferredFeatureCodes.filter((code) => candidate.featureCodes.includes(code));
-      const hasAvoidedFeature = avoidedFeatureCodes.some((code) => candidate.featureCodes.includes(code));
-      return { candidate, matchedFeatureCodes, hasAvoidedFeature, score: matchedFeatureCodes.length };
+      const matchedFeatureCodes = appliedPreferredFeatureCodes.filter((code) => code in candidate.featureStrengths);
+      const hasAvoidedFeature = appliedAvoidedFeatureCodes.some((code) => code in candidate.featureStrengths);
+      const score = matchedFeatureCodes.reduce((total, code) => total + candidate.featureStrengths[code], 0);
+      return { candidate, matchedFeatureCodes, hasAvoidedFeature, score };
     })
     .filter((candidate) => !candidate.hasAvoidedFeature && candidate.score > 0)
     .sort((left, right) => right.score - left.score || left.candidate.title.localeCompare(right.candidate.title, "ko"))
+    .filter((candidate) => {
+      if (selectedWorkIds.has(candidate.candidate.workId)) {
+        return false;
+      }
+      selectedWorkIds.add(candidate.candidate.workId);
+      return true;
+    })
     .slice(0, request.limit);
 
-  return Promise.all(ranked.map(async ({ candidate, matchedFeatureCodes, score }) => ({
+  const recommendations = await Promise.all(ranked.map(async ({ candidate, matchedFeatureCodes, score }) => ({
     workId: candidate.workId,
     editionId: candidate.editionId,
     title: candidate.title,
@@ -118,4 +143,12 @@ export async function findRecommendations(
     matchedFeatureCodes,
     ...(await renderExplanation(candidate, matchedFeatureCodes)),
   })));
+
+  return {
+    recommendations,
+    appliedPreferredFeatureCodes,
+    ignoredPreferredFeatureCodes,
+    appliedAvoidedFeatureCodes,
+    ignoredAvoidedFeatureCodes,
+  };
 }

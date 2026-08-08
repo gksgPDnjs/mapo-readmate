@@ -137,9 +137,9 @@ app.post("/api/recommendations/preview", async (request, reply) => {
     return reply.code(400).send({ error: "invalid_recommendation_request" });
   }
 
-  const recommendations = await findRecommendations(client, recommendationRequest);
+  const recommendationResult = await findRecommendations(client, recommendationRequest);
   const inputChecksum = createHash("sha256").update(JSON.stringify(recommendationRequest)).digest("hex");
-  return { inputChecksum, recommendations };
+  return { inputChecksum, ...recommendationResult };
 });
 
 app.addHook("onClose", async () => {

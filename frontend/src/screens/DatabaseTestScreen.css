@@ -122,6 +122,11 @@
   margin-top: 3px;
 }
 
+.test-warning {
+  color: #8c541d;
+  font-size: 12px;
+}
+
 .test-book small {
   display: block;
   margin-top: 5px;

@@ -56,6 +56,10 @@ function DatabaseTestScreen({ onClose }) {
 
   const diagnostics = result?.diagnostics
   const recommendationBooks = result?.recommendations?.recommendations ?? []
+  const ignoredCodes = [
+    ...(result?.recommendations?.ignoredPreferredFeatureCodes ?? []),
+    ...(result?.recommendations?.ignoredAvoidedFeatureCodes ?? []),
+  ]
 
   return (
     <main className="database-test screen">
@@ -94,6 +98,7 @@ function DatabaseTestScreen({ onClose }) {
           <section className="test-section" aria-label="추천 API 결과">
             <h2>추천 API 결과</h2>
             <p className="test-hint">고정된 시연 조건으로 조회한 DB 추천 도서입니다.</p>
+            {ignoredCodes.length > 0 && <p className="test-warning">DB 특성값이 없어 적용하지 못한 조건: {ignoredCodes.join(', ')}</p>}
             <div className="test-book-list">
               {recommendationBooks.map((book) => (
                 <article className="test-book" key={book.workId}>
