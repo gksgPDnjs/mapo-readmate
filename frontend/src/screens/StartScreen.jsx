@@ -1,7 +1,7 @@
 import Button from '../components/Button'
 import './StartScreen.css'
 
-function StartScreen({ onNext }) {
+function StartScreen({ onNext, onOpenSetup }) {
   return (
     <div className="screen">
       <div className="book-stack" aria-hidden="true">
@@ -25,6 +25,9 @@ function StartScreen({ onNext }) {
         >
           체험 안내
         </Button>
+        <button className="text-link" onClick={onOpenSetup}>
+          도서 데이터 설정
+        </button>
       </div>
     </div>
   )

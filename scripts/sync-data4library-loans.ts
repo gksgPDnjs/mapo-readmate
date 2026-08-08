@@ -1,7 +1,7 @@
-import { createHash } from "node:crypto";
 import postgres from "postgres";
+import { Data4LibraryProvider } from "../src/book-catalog/providers/data4library.provider.js";
+import { sha256 } from "../src/book-catalog/providers/normalization.js";
 
-const endpoint = "https://data4library.kr/api/loanItemSrch";
 const apiKey = process.env.DATA4LIBRARY_API_KEY;
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -14,8 +14,6 @@ type SyncArguments = {
   pageSize: number;
   region?: string;
 };
-
-type LoanRecord = Record<string, unknown>;
 
 function parseArguments(argumentList: string[]): SyncArguments {
   const values = new Map<string, string>();
@@ -45,98 +43,13 @@ function parseArguments(argumentList: string[]): SyncArguments {
   return { startDate, endDate, fromAge, toAge, page, pageSize, region: values.get("--region") };
 }
 
-function text(record: LoanRecord, ...keys: string[]): string | null {
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === "string") {
-      const normalized = value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-      if (normalized) {
-        return normalized;
-      }
-    }
-    if (typeof value === "number") {
-      return String(value);
-    }
-  }
-  return null;
-}
-
-function isbn13(record: LoanRecord): string | null {
-  const value = text(record, "isbn13", "ISBN13", "isbn", "ISBN")?.replace(/[^0-9]/g, "");
-  return value?.length === 13 ? value : null;
-}
-
-function numberValue(record: LoanRecord, ...keys: string[]): number | null {
-  const value = text(record, ...keys)?.replace(/,/g, "");
-  if (!value) {
-    return null;
-  }
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function publicationDate(record: LoanRecord): string | null {
-  const value = text(record, "publication_year", "publicationYear", "pubYear", "year")?.match(/^\d{4}/)?.[0];
-  return value ? `${value}-01-01` : null;
-}
-
-function sha256(value: unknown): string {
-  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
-}
-
-function extractLoanRecords(payload: unknown): LoanRecord[] {
-  const records: LoanRecord[] = [];
-  const visit = (value: unknown): void => {
-    if (Array.isArray(value)) {
-      value.forEach(visit);
-      return;
-    }
-    if (!value || typeof value !== "object") {
-      return;
-    }
-    const record = value as LoanRecord;
-    if (text(record, "bookname", "bookName", "BOOKNAME")) {
-      records.push(record);
-      return;
-    }
-    Object.values(record).forEach(visit);
-  };
-  visit(payload);
-  return records;
-}
-
 if (!apiKey || !databaseUrl) {
   throw new Error("DATABASE_URL and DATA4LIBRARY_API_KEY are required. See .env.example.");
 }
 
 const options = parseArguments(process.argv.slice(2));
-const query = new URLSearchParams({
-  authKey: apiKey,
-  format: "json",
-  startDt: options.startDate,
-  endDt: options.endDate,
-  from_age: String(options.fromAge),
-  to_age: String(options.toAge),
-  pageNo: String(options.page),
-  pageSize: String(options.pageSize),
-});
-if (options.region) {
-  query.set("region", options.region);
-}
-
-const response = await fetch(`${endpoint}?${query.toString()}`, { headers: { Accept: "application/json" } });
-const responseText = await response.text();
-let payload: unknown;
-try {
-  payload = JSON.parse(responseText);
-} catch {
-  throw new Error(`Data4Library returned non-JSON response (${response.status}).`);
-}
-if (!response.ok) {
-  throw new Error(`Data4Library request failed with HTTP ${response.status}: ${responseText.slice(0, 300)}`);
-}
-
-const records = extractLoanRecords(payload);
+const provider = new Data4LibraryProvider(apiKey);
+const records = await provider.listPopularLoans(options);
 if (records.length === 0) {
   console.log("No Data4Library loan records found.");
   process.exit(0);
@@ -159,14 +72,11 @@ try {
 
     let created = 0;
     for (const record of records) {
-      const title = text(record, "bookname", "bookName", "BOOKNAME");
-      if (!title) {
-        continue;
-      }
-      const isbn = isbn13(record);
-      const author = text(record, "authors", "author", "AUTHOR");
-      const payloadHash = sha256(record);
-      const externalId = isbn ?? `${title}:${author ?? "unknown"}:${text(record, "publication_year", "publicationYear") ?? "unknown"}`;
+      const title = record.title;
+      const isbn = record.isbn13;
+      const author = record.author;
+      const payloadHash = sha256(record.raw);
+      const externalId = record.externalId;
       const existingEdition = isbn
         ? await transaction<{ id: string; work_id: string }[]>`select id, work_id from catalog.editions where isbn13 = ${isbn}`
         : [];
@@ -180,7 +90,7 @@ try {
       `)[0].id;
       const editionId = existingEdition[0]?.id ?? (await transaction<{ id: string }[]>`
         insert into catalog.editions (work_id, title, isbn13, publisher_name, published_on, language_code, catalog_status)
-        values (${workId}, ${title}, ${isbn}, ${text(record, "publisher", "PUBLISHER")}, ${publicationDate(record)}, 'ko', 'review')
+        values (${workId}, ${title}, ${isbn}, ${record.publisher}, ${record.publishedOn}, 'ko', 'review')
         returning id
       `)[0].id;
 
@@ -188,7 +98,7 @@ try {
         insert into provenance.source_records (
           source_id, ingestion_run_id, external_id, entity_kind, work_id, edition_id, raw_payload, payload_sha256, http_status, usage_status
         ) values (
-          ${source[0].id}, ${run[0].id}, ${externalId}, 'usage_signal', ${workId}, ${editionId}, ${JSON.stringify(record)}::jsonb, ${payloadHash}, ${response.status}, 'accepted'
+          ${source[0].id}, ${run[0].id}, ${externalId}, 'usage_signal', ${workId}, ${editionId}, ${JSON.stringify(record.raw)}::jsonb, ${payloadHash}, 200, 'accepted'
         )
         on conflict (source_id, external_id, payload_sha256)
         do update set fetched_at = now(), ingestion_run_id = excluded.ingestion_run_id, usage_status = 'accepted'
@@ -196,8 +106,8 @@ try {
       `;
 
       const observedAt = new Date().toISOString();
-      const loanCount = numberValue(record, "loan_count", "loanCount", "LOAN_COUNT");
-      const loanRank = numberValue(record, "ranking", "rank", "RANKING");
+      const loanCount = record.loanCount;
+      const loanRank = record.loanRank;
       if (loanCount !== null) {
         await transaction`
           insert into catalog.audience_popularity_signals (

@@ -16,12 +16,25 @@
 
 | `experience_mode` | 문항 수 | 결과 | 측정 범위 | 승급 경로 |
 | --- | --- | --- | --- | --- |
-| `quick` | 6~8 | 3권 | 무료 `core_4` | `deep` |
+| `quick` | 12 | 3권 | 무료 `first_stage_4` | `deep` |
 | `deep` | 12~18 | 5권 | 유료 `refined_9` + 목적·주제·시간·난이도·콘텐츠 경계 | 없음 |
 
 `carry_forward_dimensions`에는 승급 시 다시 묻지 않을 검증된 축 코드만 기록한다. 주제, 목적, 제약은 `deep`에서 새로 받거나 사용자가 수정할 수 있다.
 
 `required_access_tier`는 `quick`에서 `free`, `deep`에서 `premium`이다. 클라이언트 화면이 아닌 서버의 권한 해석이 이 제약을 적용한다.
+
+## 1차 독서 성향 퀴즈
+
+`first-stage-v1`은 무료 `first_stage_4` 차원 집합을 사용한다. 모든 문항은 단일 선택형이며, 각 축에 3문항씩 총 12문항이다.
+
+| 축 코드 | 측정 범위 | 선택지 점수 |
+| --- | --- | --- |
+| `purpose_knowledge_story` | 지식 탐색 ↔ 이야기 몰입 | `a1=-1`, `a2=0`, `a3=1` |
+| `language_east_west` | 동양 친숙 ↔ 서양 탐험 | `a1=-1`, `a2=0`, `a3=1` |
+| `popularity_mainstream_discovery` | 대중 선택 ↔ 새로운 발견 | `a1=-1`, `a2=0`, `a3=1` |
+| `difficulty_light_deep` | 가볍게 읽기 ↔ 깊이 읽기 | `a1=-1`, `a2=0`, `a3=1` |
+
+축 결과는 세 문항 점수의 평균을 사용한다. `a2`는 중립 응답으로, 어느 쪽의 성향도 강화하지 않는다.
 
 ## 버전 정책
 

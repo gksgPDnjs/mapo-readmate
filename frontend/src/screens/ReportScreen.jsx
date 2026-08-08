@@ -1,12 +1,10 @@
 import { useState } from 'react'
 import Button from '../components/Button'
 import TraitBadgeCard from '../components/TraitBadgeCard'
-import { defaultTrait } from '../data/traits'
-import { recommendedBooks } from '../data/books'
 import { STEP } from '../constants'
 import './ReportScreen.css'
 
-function ReportScreen({ onGoTo }) {
+function ReportScreen({ onGoTo, recommendations, trait }) {
   const [view, setView] = useState('result')
 
   if (view === 'qr') {
@@ -41,10 +39,10 @@ function ReportScreen({ onGoTo }) {
         <h2>AI 독서 리포트가 완성되었습니다</h2>
         <p>당신의 독서 성향이에요</p>
       </div>
-      <TraitBadgeCard trait={defaultTrait} />
+      <TraitBadgeCard trait={trait} />
       <ul className="report-summary-list">
         <li>
-          <strong>추천 도서</strong> {recommendedBooks.map((b) => b.title).join(', ')}
+          <strong>추천 도서</strong> {recommendations.length > 0 ? recommendations.map((book) => book.title).join(', ') : '추천 후보 없음'}
         </li>
         <li>
           <strong>오늘의 독서 미션</strong> 추천받은 책의 첫 장을 읽고 가장 인상 깊었던 장면을

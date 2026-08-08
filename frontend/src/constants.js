@@ -3,6 +3,7 @@ export const STEP = {
   CHAT: 1,
   LOADING: 2,
   TRAIT: 3,
-  BOOKS: 4,
-  REPORT: 5,
+  DEEP: 4,
+  BOOKS: 5,
+  REPORT: 6,
 }
