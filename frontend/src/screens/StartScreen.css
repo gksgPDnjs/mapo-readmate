@@ -1,10 +1,43 @@
+.screen-start {
+  background: linear-gradient(180deg, var(--color-accent-soft) 0%, var(--color-surface) 60%);
+}
+
+.logo-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-top: 36px;
+}
+
+.brand {
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--color-accent);
+  letter-spacing: -0.8px;
+  text-shadow: 0 6px 20px rgba(47, 163, 96, 0.25);
+}
+
+.screen-start .screen-copy {
+  margin-top: 12px;
+}
+
 .book-stack {
+  position: relative;
   height: 150px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   gap: 12px;
-  margin-top: 24px;
+}
+
+.book-stack::before {
+  content: '';
+  position: absolute;
+  inset: -20px -40px auto;
+  height: 170px;
+  background: radial-gradient(circle, var(--color-accent-soft) 0%, transparent 70%);
+  z-index: -1;
 }
 
 .stack-book {
@@ -28,4 +61,97 @@
   height: 84px;
   background: #3bb876;
   transform: rotate(6deg);
+}
+
+.signboard {
+  position: relative;
+  background: #fff8ec;
+  border: 3px dashed var(--color-accent);
+  border-radius: 20px;
+  padding: 26px 18px 20px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.signboard-pin {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  box-shadow: var(--shadow-card);
+}
+
+.signboard-pin::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.guide-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.guide-steps li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  text-align: left;
+  background: var(--color-surface);
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow-card);
+}
+
+.guide-step-num {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guide-step-emoji {
+  flex-shrink: 0;
+  font-size: 20px;
+}
+
+.guide-steps h3 {
+  font-size: 13px;
+}
+
+.guide-steps p {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.guide-time {
+  align-self: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  border-radius: 999px;
+  padding: 6px 16px;
 }

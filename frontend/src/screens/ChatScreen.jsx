@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ChatBubble from '../components/ChatBubble'
 import Button from '../components/Button'
 import { questions } from '../data/questions'
@@ -7,8 +7,13 @@ import './ChatScreen.css'
 function ChatScreen({ onNext }) {
   const [step, setStep] = useState(0)
   const [history, setHistory] = useState([{ from: 'ai', text: questions[0].text }])
+  const chatEndRef = useRef(null)
 
   const isDone = step >= questions.length
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [history])
 
   const handleSelect = (option) => {
     const nextStep = step + 1
@@ -16,13 +21,15 @@ function ChatScreen({ onNext }) {
 
     if (nextStep < questions.length) {
       newHistory.push({ from: 'ai', text: questions[nextStep].text })
+    } else {
+      newHistory.push({ from: 'ai', text: '고마워요! 이제 독서 성향을 분석해볼게요 🌱' })
     }
 
     setHistory(newHistory)
     setStep(nextStep)
 
     if (nextStep >= questions.length) {
-      setTimeout(onNext, 600)
+      setTimeout(onNext, 1000)
     }
   }
 
@@ -37,6 +44,7 @@ function ChatScreen({ onNext }) {
             {message.text}
           </ChatBubble>
         ))}
+        <div ref={chatEndRef} />
       </div>
       {!isDone && (
         <div className="chat-options">

@@ -38,12 +38,12 @@
 .flip-card-front {
   background: var(--color-accent-soft);
   color: var(--color-accent);
-  font-weight: 600;
-  font-size: 14px;
 }
 
-.flip-card-icon {
-  font-size: 40px;
+.flip-card-hint {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 .flip-card-back {

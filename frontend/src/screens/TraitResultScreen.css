@@ -1,3 +1,7 @@
+.screen-trait {
+  justify-content: center;
+}
+
 .keyword-tags {
   display: flex;
   gap: 8px;

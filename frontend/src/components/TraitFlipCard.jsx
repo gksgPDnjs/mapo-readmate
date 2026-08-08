@@ -10,11 +10,8 @@ function TraitFlipCard({ trait, flipped, onFlip }) {
     >
       <div className="flip-card-inner">
         <div className="flip-card-face flip-card-front">
-          <span className="flip-card-icon">📖</span>
-          <p>탭해서
-            <br />
-            성향 확인하기
-          </p>
+          <span className="flip-card-code">{trait.code}</span>
+          <p className="flip-card-hint">눌러서 자세히 보기</p>
         </div>
         <div className="flip-card-face flip-card-back">
           <span className="flip-card-code">{trait.code}</span>
