@@ -10,6 +10,7 @@
     "catalog:sync:data4library": "tsx scripts/sync-data4library-loans.ts",
     "catalog:sync:nl": "tsx scripts/sync-national-library.ts",
     "catalog:sync:openlibrary": "tsx scripts/sync-open-library-bulk.ts",
+    "catalog:publish:openlibrary": "tsx scripts/publish-open-library-mvp-catalog.ts",
     "catalog:check:500": "tsx scripts/check-catalog-volume.ts",
     "db:check": "tsx scripts/validate-db-contract.ts",
     "db:migrate": "tsx src/db/migrate.ts",
@@ -18,6 +19,7 @@
     "db:seed-features:check": "tsx scripts/seed-feature-taxonomy.ts --check",
     "integrations:check": "tsx scripts/check-external-book-apis.ts",
     "recommendations:check": "tsx scripts/check-recommendation-flow.ts",
+    "validation:run": "tsx scripts/run-validation-harness.ts",
     "typecheck": "tsc --noEmit",
     "test": "npm run db:check && npm run typecheck"
   },

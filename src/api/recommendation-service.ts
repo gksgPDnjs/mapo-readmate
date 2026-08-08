@@ -91,8 +91,8 @@ export async function findRecommendations(
       work.id as "workId",
       edition.id as "editionId",
       work.canonical_title as title,
-      string_agg(distinct contributor.display_name, ', ') as author,
-      work.description,
+      coalesce(string_agg(distinct contributor.display_name, ', '), '저자 정보 수집 중입니다.') as author,
+      coalesce(work.description, '소개 정보 수집 중입니다.') as description,
       coalesce(
         jsonb_object_agg(feature.feature_code, feature.strength) filter (where feature.review_status = 'approved'),
         '{}'::jsonb
@@ -106,7 +106,6 @@ export async function findRecommendations(
       and edition.catalog_status = 'published'
     group by work.id, edition.id
     order by work.updated_at desc
-    limit 100
   `;
 
   const supportedFeatureCodes = new Set(candidates.flatMap((candidate) => Object.keys(candidate.featureStrengths)));
