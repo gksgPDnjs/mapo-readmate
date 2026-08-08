@@ -300,7 +300,7 @@ app.post("/api/sessions/:id/complete", async (request, reply) => {
         session_id, quiz_attempt_id, rule_set_id, access_tier, dimension_set_id, sequence, dimension_scores, confidence_scores
       ) values (
         ${sessionId}, ${attempts[0].id}, ${attempts[0].ruleSetId}, 'free', ${attempts[0].dimensionSetId}, 1,
-        ${JSON.stringify(scores)}::jsonb, ${JSON.stringify(Object.fromEntries(Object.keys(scores).map((code) => [code, 1])))}::jsonb
+        ${transaction.json(scores)}, ${transaction.json(Object.fromEntries(Object.keys(scores).map((code) => [code, 1])))}
       ) returning id
     `;
     const engines = await transaction<{ id: string }[]>`
@@ -396,7 +396,7 @@ app.post("/api/feedback", async (request, reply) => {
   if (sessions.length !== 1) return reply.code(404).send({ error: "session_not_found" });
   await database`
     insert into recommendation.feedback_events (session_id, event_type, metadata)
-    values (${body.sessionId}, ${body.eventType}, ${JSON.stringify(body.metadata ?? {})}::jsonb)
+    values (${body.sessionId}, ${body.eventType}, ${database.json((body.metadata ?? {}) as unknown as postgres.JSONValue)})
   `;
   return reply.code(201).send({ recorded: true });
 });
