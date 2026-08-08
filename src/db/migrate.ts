@@ -1,8 +1,13 @@
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import postgres from "postgres";
+
+if (existsSync(".env")) {
+  process.loadEnvFile();
+}
 
 const databaseUrl = process.env.DATABASE_URL;
 

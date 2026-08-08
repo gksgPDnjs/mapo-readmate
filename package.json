@@ -17,20 +17,28 @@
     "db:seed-demo": "tsx scripts/seed-development-catalog.ts",
     "db:seed-features": "tsx scripts/seed-feature-taxonomy.ts",
     "db:seed-features:check": "tsx scripts/seed-feature-taxonomy.ts --check",
+    "demo:check": "tsx scripts/check-demo-flow.ts",
     "integrations:check": "tsx scripts/check-external-book-apis.ts",
+    "mcp:books": "tsx src/mcp/book-catalog-server.ts",
+    "mcp:check": "tsx scripts/check-mcp-book-tools.ts",
     "recommendations:check": "tsx scripts/check-recommendation-flow.ts",
     "validation:run": "tsx scripts/run-validation-harness.ts",
+    "db:dev:up": "docker compose up --detach --wait db && tsx scripts/bootstrap-development-db.ts",
+    "db:dev:down": "docker compose down",
+    "db:dev:reset": "docker compose down --volumes && npm run db:dev:up",
     "typecheck": "tsc --noEmit",
     "test": "npm run db:check && npm run typecheck"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "cors": "^2.8.6",
     "csv-parse": "^7.0.2",
     "drizzle-orm": "^0.44.7",
     "express": "^5.2.1",
     "fastify": "^5.11.2",
     "openai": "^7.4.0",
-    "postgres": "^3.4.7"
+    "postgres": "^3.4.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

@@ -21,3 +21,14 @@
   flex-direction: column;
   gap: 8px;
 }
+
+.chat-status {
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-error {
+  color: #9c2d20;
+  font-size: 13px;
+  text-align: center;
+}

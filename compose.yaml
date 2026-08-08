@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: mapo_readmate
+      POSTGRES_PASSWORD: mapo_readmate
+      POSTGRES_DB: mapo_readmate
+    ports:
+      - "5432:5432"
+    volumes:
+      - mapo-readmate-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "psql -U mapo_readmate -d mapo_readmate -c 'select 1' >/dev/null"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  mapo-readmate-postgres:
