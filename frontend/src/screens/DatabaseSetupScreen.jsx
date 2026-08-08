@@ -28,7 +28,7 @@ const sources = [
   },
 ]
 
-function DatabaseSetupScreen({ onClose }) {
+function DatabaseSetupScreen({ onClose, onOpenTest }) {
   return (
     <main className="database-setup screen">
       <header className="database-setup-header">
@@ -60,6 +60,7 @@ function DatabaseSetupScreen({ onClose }) {
 
       <div className="screen-actions">
         <Button onClick={onClose}>체험 화면으로 돌아가기</Button>
+        <Button variant="secondary" onClick={onOpenTest}>DB 연결 테스트</Button>
       </div>
     </main>
   )

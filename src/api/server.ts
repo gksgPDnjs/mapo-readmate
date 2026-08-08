@@ -46,6 +46,59 @@ app.get("/health", async (_request, reply) => {
   }
 });
 
+app.get("/api/catalog/diagnostics", async (_request, reply) => {
+  if (!client) {
+    return reply.code(503).send({ error: "database_unavailable" });
+  }
+
+  const [catalog, features, sources, books] = await Promise.all([
+    client<{ works: number; publishedWorks: number; editions: number; publishedEditions: number }[]>`
+      select
+        (select count(*)::int from catalog.works) as works,
+        (select count(*)::int from catalog.works where catalog_status = 'published') as "publishedWorks",
+        (select count(*)::int from catalog.editions) as editions,
+        (select count(*)::int from catalog.editions where catalog_status = 'published') as "publishedEditions"
+    `,
+    client<{ definitions: number; approvedValues: number }[]>`
+      select
+        (select count(*)::int from catalog.feature_definitions where active) as definitions,
+        (select count(*)::int from catalog.work_feature_values where review_status = 'approved') as "approvedValues"
+    `,
+    client<{ code: string; name: string; active: boolean; recordCount: number }[]>`
+      select
+        source.code,
+        source.name,
+        source.active,
+        count(record.id)::int as "recordCount"
+      from provenance.sources as source
+      left join provenance.source_records as record on record.source_id = source.id
+      group by source.id
+      order by source.catalog_priority nulls last, source.code
+    `,
+    client<{ title: string; author: string | null; description: string | null; catalogStatus: string }[]>`
+      select
+        work.canonical_title as title,
+        string_agg(distinct contributor.display_name, ', ') as author,
+        work.description,
+        work.catalog_status as "catalogStatus"
+      from catalog.works as work
+      left join catalog.work_contributors as credit on credit.work_id = work.id and credit.role_code = 'author'
+      left join catalog.contributors as contributor on contributor.id = credit.contributor_id
+      group by work.id
+      order by work.updated_at desc
+      limit 6
+    `,
+  ]);
+
+  return {
+    checkedAt: new Date().toISOString(),
+    catalog: catalog[0],
+    features: features[0],
+    sources,
+    books,
+  };
+});
+
 app.get("/api/deep-questions", async (_request, reply) => {
   if (!client) {
     return reply.code(503).send({ error: "database_unavailable" });

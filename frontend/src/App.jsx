@@ -7,6 +7,7 @@ import DeepQuizScreen from './screens/DeepQuizScreen'
 import BookRecommendScreen from './screens/BookRecommendScreen'
 import ReportScreen from './screens/ReportScreen'
 import DatabaseSetupScreen from './screens/DatabaseSetupScreen'
+import DatabaseTestScreen from './screens/DatabaseTestScreen'
 import { createTrait } from './data/traitScoring'
 import { STEP } from './constants'
 import './App.css'
@@ -23,14 +24,14 @@ const SCREENS = [
 
 function App() {
   const [step, setStep] = useState(0)
-  const [isSetupVisible, setIsSetupVisible] = useState(() => window.location.hash === '#setup')
+  const [toolScreen, setToolScreen] = useState(() => window.location.hash)
   const [answers, setAnswers] = useState([])
   const [recommendations, setRecommendations] = useState([])
 
   useEffect(() => {
-    const syncSetupVisibility = () => setIsSetupVisible(window.location.hash === '#setup')
-    window.addEventListener('hashchange', syncSetupVisibility)
-    return () => window.removeEventListener('hashchange', syncSetupVisibility)
+    const syncToolScreen = () => setToolScreen(window.location.hash)
+    window.addEventListener('hashchange', syncToolScreen)
+    return () => window.removeEventListener('hashchange', syncToolScreen)
   }, [])
 
   const Screen = SCREENS[step]
@@ -60,13 +61,20 @@ function App() {
   const openSetup = () => {
     window.location.hash = 'setup'
   }
+  const openTest = () => {
+    window.location.hash = 'test'
+  }
   const closeSetup = () => {
     window.history.replaceState(null, '', window.location.pathname)
-    setIsSetupVisible(false)
+    setToolScreen('')
   }
 
-  if (isSetupVisible) {
-    return <DatabaseSetupScreen onClose={closeSetup} />
+  if (toolScreen === '#setup') {
+    return <DatabaseSetupScreen onClose={closeSetup} onOpenTest={openTest} />
+  }
+
+  if (toolScreen === '#test') {
+    return <DatabaseTestScreen onClose={openSetup} />
   }
 
   return (
