@@ -1,0 +1,38 @@
+﻿category,attribute_id,attribute_name_kr,description
+genre,G_FANTASY,판타지,마법/세계관/이계 모험 요소가 강한 이야기
+genre,G_ESSAY,에세이,작가의 일상과 감정/위로가 담긴 가벼운 에세이
+genre,G_MYSTERY,추리/스릴러,사건의 단서를 파헤치는 긴장감 있는 스토리
+genre,G_NOVEL,현대소설,현대 사회와 사람들의 인과관계를 그려낸 이야기
+genre,G_SELF_DEV,자기계발,성장과 동기부여를 주는 실용적인 지침서
+domain,D_HUMAN,인문/사회,인간의 삶/역사/심리에 관한 유용한 지식
+domain,D_SCIENCE,과학/SF,우주/AI/지구과학/미래 기술에 관한 흥미로운 사실
+domain,D_ART,예술/문화,음악/미술/문학 등 감성을 자극하는 분야
+origin,O_KR,한국,한국 정서/전설/동양적 배경 및 한국 작가 작품
+origin,O_JP,일본,일본 작가 작품
+origin,O_RU,러시아,러시아 작가 작품
+origin,O_EU,유럽,유럽 배경 작품
+origin,O_EN,영어권,영어로 작성된 작품
+origin,O_CH,중국,중국 작가/배경 작품
+mood,M_HEALING,따뜻한/힐링,지친 마음을 보듬고 편안하게 읽을 수 있는 분위기
+mood,M_THRILLING,흥미진진한,몰입감이 높고 사건 전개가 빠른 다이내믹한 분위기
+mood,M_CALM,잔잔한/깊은,조용히 생각에 잠기게 만드는 깊이 있는 분위기
+mood,M_WITTY,유쾌한/위트,웃음을 자아내고 가볍게 읽기 좋은 발랄한 분위기
+difficulty,DIFF_EASY,입문/가벼움,분량이 얇고 어휘가 쉬워 가볍게 읽는 책
+difficulty,DIFF_MEDIUM,보통,부담 없이 전개에 몰입해 완독할 수 있는 적당한 분량
+difficulty,DIFF_DEEP,완독/깊이감,생각할 거리가 많고 두께감이 있는 장편/전문서
+style_tone,TONE_POETIC,서정적/감성적,문장이 아름답고 마음을 간지럽히는 시적 문체
+style_tone,TONE_CLEAR,직관적/명쾌한,수식어가 적고 사실과 핵심을 빠르게 전달하는 문체
+style_tone,TONE_WITTY,위트/유머러스,대사가 톡톡 튀고 재미있어 몰입하기 쉬운 문체
+ending_pref,END_HAPPY,확실한 결말,갈등이 완전히 해소되고 깔끔하게 마무리되는 결말
+ending_pref,END_OPEN,여운/열린결말,책을 덮은 뒤에도 오랫동안 생각에 잠기게 하는 여운
+ending_pref,END_REAL,현실적 결말,달콤한 환상 대신 현실을 직시하게 만드는 묵직한 결말
+visual_type,VIS_TEXT,텍스트 중심,글 자체의 서사와 문장력에 깊게 몰입하는 형태
+visual_type,VIS_ILLUST,일러스트/삽화,아름다운 그림과 삽화가 들어가 글과 함께 즐기는 형태
+visual_type,VIS_DIAGRAM,도표/인포그래픽,시각 자료와 요약 표로 이해를 돕는 구조적 형태
+utility,UTIL_PRACTICAL,실생활 적용,읽고 난 뒤 바로 행동이나 생각 습관을 바꿀 수 있는 내용
+utility,UTIL_PERSPECTIVE,세상을 보는 시각,새로운 정보와 지식으로 교양을 넓혀주는 내용
+utility,UTIL_EMPATHY,감정적 위로,타인의 삶에 공감하며 지친 마음을 달래주는 내용
+avoid_element,AVOID_DARK,우울함/슬픔,마음이 침체되거나 지나치게 슬픈 내용
+avoid_element,AVOID_HARD,어려운 용어,전문적인 개념이나 어려운 기호가 많은 내용
+avoid_element,AVOID_CRUEL,잔인함/공포,자극적이거나 잔혹하고 무서운 장면
+avoid_element,AVOID_LONG,지나치게 길고 완만한 전개,초반 몰입이 어렵고 호흡이 너무 긴 내용
