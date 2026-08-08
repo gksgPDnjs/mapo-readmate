@@ -29,9 +29,19 @@ const requiredFragments = [
   "create table catalog.library_availability_observations",
   "create table catalog.audience_popularity_signals",
   "create table curation.curations",
+  "source_records_linked_entity_check",
   "'national_library_isbn'",
   "'data4library'",
-  "'nlcy_librarian'"
+  "'nlcy_librarian'",
+  "'first_stage_4'",
+  "'first-stage-v1'",
+  "'purpose_knowledge_story'",
+  "'popularity_mainstream_discovery'",
+  "create table catalog.feature_definitions",
+  "create table catalog.work_feature_values",
+  "create table recommendation.profile_feature_preferences",
+  "create table recommendation.explanation_factors",
+  "'deep-feature-v1'"
 ];
 
 const missing = requiredFragments.filter((fragment) => !migration.includes(fragment));

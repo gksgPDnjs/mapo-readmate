@@ -1,0 +1,72 @@
+.database-setup {
+  gap: 18px;
+  overflow-y: auto;
+}
+
+.database-setup-header {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.database-setup-kicker,
+.setup-check > span {
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.database-setup-header h1 {
+  font-size: 25px;
+}
+
+.database-setup-header p,
+.source-item p,
+.setup-check p {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.source-item,
+.setup-check {
+  border: 1px solid #dce7df;
+  border-radius: 8px;
+  padding: 14px;
+  background: #fbfdfb;
+}
+
+.source-item {
+  display: grid;
+  gap: 8px;
+}
+
+.source-item h2 {
+  font-size: 16px;
+}
+
+.source-item code,
+.setup-check code,
+.database-setup-header code {
+  overflow-wrap: anywhere;
+  color: #246e42;
+  font-size: 12px;
+}
+
+.source-item a {
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.setup-check {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}

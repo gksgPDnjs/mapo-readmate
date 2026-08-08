@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import postgres from "postgres";
+import { NationalLibraryProvider } from "../src/book-catalog/providers/national-library.provider.js";
 
-const endpoint = "https://www.nl.go.kr/seoji/SearchApi.do";
 const certKey = process.env.NATIONAL_LIBRARY_CERT_KEY;
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -126,34 +126,8 @@ if (!certKey || !databaseUrl) {
 }
 
 const search = parseArguments(process.argv.slice(2));
-const query = new URLSearchParams({
-  cert_key: certKey,
-  result_style: "json",
-  page_no: String(search.page),
-  page_size: String(search.pageSize)
-});
-if (search.isbn) {
-  query.set("isbn", search.isbn);
-} else if (search.title) {
-  query.set("title", search.title);
-}
-
-const response = await fetch(`${endpoint}?${query.toString()}`, {
-  headers: { Accept: "application/json" }
-});
-const responseBody = await response.text();
-let payload: unknown;
-try {
-  payload = JSON.parse(responseBody);
-} catch {
-  throw new Error(`National Library API returned non-JSON response (${response.status}).`);
-}
-
-if (!response.ok) {
-  throw new Error(`National Library API request failed with HTTP ${response.status}: ${responseBody.slice(0, 300)}`);
-}
-
-const records = extractRecords(payload);
+const provider = new NationalLibraryProvider(certKey);
+const records = await provider.search({ isbn13: search.isbn, title: search.title, page: search.page, pageSize: search.pageSize });
 if (records.length === 0) {
   console.log("No bibliographic records found.");
   process.exit(0);
@@ -178,13 +152,10 @@ try {
     let createdCount = 0;
     let changedCount = 0;
     for (const record of records) {
-      const title = normalizeText(record.TITLE);
-      if (!title) {
-        continue;
-      }
-      const isbn13 = toIsbn13(normalizeIsbn(record.EA_ISBN));
-      const externalId = normalizeText(record.CONTROL_NO) ?? isbn13 ?? sha256(record);
-      const payloadHash = sha256(record);
+      const title = record.title;
+      const isbn13 = record.isbn13;
+      const externalId = record.externalId;
+      const payloadHash = sha256(record.raw);
 
       const existingEdition = isbn13
         ? await transaction<{ id: string; work_id: string }[]>`
@@ -204,10 +175,10 @@ try {
           ${workId},
           ${title},
           ${isbn13},
-          ${normalizeText(record.PUBLISHER)},
-          ${parsePublicationDate(record.PUBLISH_PREDATE)},
-          ${parsePageCount(record.PAGE)},
-          ${normalizeText(record.FORM) ?? 'paperback'},
+          ${record.publisher},
+          ${record.publishedOn},
+          ${record.pageCount},
+          ${record.format ?? 'paperback'},
           'ko',
           'review'
         )
@@ -225,7 +196,7 @@ try {
           source_id, ingestion_run_id, external_id, entity_kind, work_id, edition_id, raw_payload, payload_sha256, http_status, usage_status
         )
         values (
-          ${source[0].id}, ${run[0].id}, ${externalId}, 'edition', ${workId}, ${editionId}, ${toJsonValue(record)}::jsonb, ${payloadHash}, ${response.status}, 'accepted'
+          ${source[0].id}, ${run[0].id}, ${externalId}, 'edition', ${workId}, ${editionId}, ${toJsonValue(record.raw)}::jsonb, ${payloadHash}, 200, 'accepted'
         )
         on conflict (source_id, external_id, payload_sha256)
         do update set fetched_at = now(), ingestion_run_id = excluded.ingestion_run_id, usage_status = 'accepted'
@@ -234,9 +205,9 @@ try {
 
       const observations = [
         ["title", title],
-        ["publisher_name", normalizeText(record.PUBLISHER)],
-        ["published_on", parsePublicationDate(record.PUBLISH_PREDATE)],
-        ["page_count", parsePageCount(record.PAGE)],
+        ["publisher_name", record.publisher],
+        ["published_on", record.publishedOn],
+        ["page_count", record.pageCount],
         ["isbn13", isbn13]
       ] as const;
       for (const [fieldName, value] of observations) {

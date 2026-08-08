@@ -9,7 +9,7 @@ const GUIDE_STEPS = [
   { emoji: '📱', title: 'QR로 저장하기', desc: '결과를 저장해요' },
 ]
 
-function StartScreen({ onNext }) {
+function StartScreen({ onNext, onOpenSetup }) {
   const [view, setView] = useState('start')
 
   if (view === 'guide') {
@@ -68,6 +68,9 @@ function StartScreen({ onNext }) {
         <Button variant="secondary" onClick={() => setView('guide')}>
           체험 안내
         </Button>
+        <button className="text-link" onClick={onOpenSetup}>
+          도서 데이터 설정
+        </button>
       </div>
     </div>
   )
