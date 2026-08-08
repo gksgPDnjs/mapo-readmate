@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import Fastify from "fastify";
 import postgres from "postgres";
 import { findRecommendations, type RecommendationRequest } from "./recommendation-service.js";
@@ -22,31 +22,47 @@ type ActiveFirstStageQuestion = {
 
 type FirstStageResponseInput = { questionId?: string; optionId?: string };
 
+// 실제 기획된 16가지 독서 성향 체계(survey/mbti_type_v2.csv, type_description_v2.json).
+// dimension_code는 quiz.questions에 저장된 값과 정확히 일치해야 한다.
 const firstStageDimensionLabels = {
-  purpose_knowledge_story: { left: "지식", neutral: "균형", right: "이야기", leftCode: "K", neutralCode: "B", rightCode: "S" },
-  language_east_west: { left: "동양 배경", neutral: "문화권 무관", right: "서양 배경", leftCode: "E", neutralCode: "G", rightCode: "W" },
-  popularity_mainstream_discovery: { left: "검증된 인기작", neutral: "혼합", right: "새로운 발견", leftCode: "P", neutralCode: "M", rightCode: "N" },
-  difficulty_light_deep: { left: "가볍게", neutral: "중간", right: "깊이 있게", leftCode: "L", neutralCode: "M", rightCode: "D" },
+  purpose_knowledge_story: { left: "지식 탐구형", right: "감정 몰입형", leftCode: "E", rightCode: "I" },
+  language_east_west: { left: "동양 선호", right: "서양 선호", leftCode: "O", rightCode: "W" },
+  popularity_mainstream_discovery: { left: "유명세 보장", right: "신인 발굴", leftCode: "F", rightCode: "N" },
+  difficulty_light_deep: { left: "초보 독자", right: "고수 독자", leftCode: "S", rightCode: "H" },
 } as const;
+
+type TraitTypeInfo = { code: string; title: string; description: string; keywords: string[] };
+
+function loadTraitTypes(): TraitTypeInfo[] {
+  const raw = readFileSync(new URL("../../survey/type_description_v2.json", import.meta.url), "utf-8");
+  const parsed = JSON.parse(raw) as Array<{ type_code: string; title: string; description: string; keyword: string[] }>;
+  return parsed.map((entry) => ({ code: entry.type_code, title: entry.title, description: entry.description, keywords: entry.keyword }));
+}
+
+const TRAIT_TYPES = loadTraitTypes();
 
 function firstStageTrait(scores: Record<string, number>) {
   const axes = Object.entries(firstStageDimensionLabels).map(([dimensionCode, labels]) => {
     const score = scores[dimensionCode] ?? 0;
-    const direction = score > 15 ? "right" : score < -15 ? "left" : "neutral";
+    const rightDominant = score >= 0;
     return {
       code: dimensionCode,
       score,
-      label: labels[direction],
-      letter: labels[`${direction}Code`],
-      opposite: direction === "left" ? labels.right : labels.left,
-      value: direction === "right" ? Math.round((score + 100) / 2) : Math.round((100 - score) / 2),
+      label: rightDominant ? labels.right : labels.left,
+      letter: rightDominant ? labels.rightCode : labels.leftCode,
+      opposite: rightDominant ? labels.left : labels.right,
+      value: rightDominant ? Math.round((score + 100) / 2) : Math.round((100 - score) / 2),
     };
   });
-  const strongestAxis = [...axes].sort((left, right) => Math.abs(right.score) - Math.abs(left.score))[0];
+
+  const code = axes.map((axis) => axis.letter).join("");
+  const type = TRAIT_TYPES.find((entry) => entry.code === code) ?? TRAIT_TYPES[0];
 
   return {
-    code: axes.map((axis) => axis.letter).join(""),
-    name: Math.abs(strongestAxis.score) <= 15 ? "균형 잡힌 독서형" : `${strongestAxis.label} 독서형`,
+    code,
+    name: type.title,
+    description: type.description,
+    keywords: type.keywords.map((keyword) => `#${keyword}`),
     axes,
   };
 }

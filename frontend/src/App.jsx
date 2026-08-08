@@ -63,14 +63,8 @@ function App() {
     setStep(STEP.BOOKS)
   }
   const completeFirstStageQuiz = (result) => {
-    const trait = result.trait
     setRecommendations(Array.isArray(result.recommendations) ? result.recommendations : [])
-    setCompletedTrait({
-      ...trait,
-      emoji: '📚',
-      description: `${trait.axes.map((axis) => axis.label).join(', ')} 성향이 나타났어요.`,
-      keywords: trait.axes.map((axis) => `#${axis.label.replaceAll(' ', '')}`),
-    })
+    setCompletedTrait({ emoji: '📚', ...result.trait })
     setStep(STEP.LOADING)
   }
   const openSetup = () => {
