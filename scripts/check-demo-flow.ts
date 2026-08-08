@@ -6,7 +6,7 @@ type QuizQuestion = {
 type DemoResult = {
   publicCode?: string;
   trait?: { code?: string };
-  recommendations?: Array<{ role?: string; title?: string }>;
+  recommendations?: Array<{ role?: string; title?: string; explanation?: string | null }>;
 };
 
 const apiBaseUrl = process.env.RECOMMENDATION_API_URL ?? "http://localhost:3001";
@@ -41,6 +41,7 @@ const completed = await (await request(`/api/sessions/${session.id}/complete`, {
 assert(completed.publicCode && completed.trait?.code, "Completion did not return a public code and trait.");
 assert(completed.recommendations?.length === 3, "Completion did not produce three recommendations.");
 assert(new Set(completed.recommendations.map((book) => book.role)).size === 3, "Recommendations do not have distinct roles.");
+assert(completed.recommendations.every((book) => book.title && book.explanation), "A recommendation is missing its title or explanation.");
 
 const result = await (await request(`/api/results/${completed.publicCode}`)).json() as DemoResult;
 assert(result.publicCode === completed.publicCode, "Public result lookup returned the wrong result.");
