@@ -21,9 +21,10 @@ function App() {
 
   const Screen = SCREENS[step]
   const goNext = () => setStep((s) => Math.min(s + 1, SCREENS.length - 1))
+  const goTo = (index) => setStep(index)
   const restart = () => setStep(0)
 
-  return <Screen onNext={goNext} onRestart={restart} />
+  return <Screen onNext={goNext} onRestart={restart} onGoTo={goTo} />
 }
 
 export default App

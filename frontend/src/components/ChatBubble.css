@@ -1,0 +1,41 @@
+.bubble-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.bubble-row-user {
+  justify-content: flex-end;
+}
+
+.bubble-avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.bubble {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.bubble-ai {
+  background: var(--color-ai-bubble);
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+}
+
+.bubble-user {
+  background: var(--color-user-bubble);
+  color: #ffffff;
+}

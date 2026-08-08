@@ -1,0 +1,36 @@
+.book-cover {
+  width: 160px;
+  align-self: center;
+}
+
+.book-info {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+}
+
+.book-author {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.back-link {
+  align-self: flex-start;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.book-reason-full {
+  padding: 14px 16px;
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-accent-soft);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.6;
+}

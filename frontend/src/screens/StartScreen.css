@@ -1,0 +1,31 @@
+.book-stack {
+  height: 150px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.stack-book {
+  width: 56px;
+  border-radius: 6px 6px 3px 3px;
+  box-shadow: var(--shadow-card);
+}
+
+.stack-book-1 {
+  height: 96px;
+  background: #1f7a46;
+  transform: rotate(-6deg);
+}
+
+.stack-book-2 {
+  height: 128px;
+  background: #2fa360;
+}
+
+.stack-book-3 {
+  height: 84px;
+  background: #3bb876;
+  transform: rotate(6deg);
+}
