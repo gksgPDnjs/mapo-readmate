@@ -3,7 +3,7 @@
 | Persona | Feature input | Top 3 |
 | --- | --- | --- |
 | Base novel/calm | G_NOVEL, M_CALM | 긴긴밤 / 아몬드 / 지구 끝의 온실 |
-| Healing | G_NOVEL, M_HEALING | 불편한 편의점 / 긴긴밤 / 나미야 잡화점의 기적 |
+| Healing | G_NOVEL, M_HEALING | 불편한 편의점 / "P-300" ŭn narŭnda / 2061 |
 | Science/deep | D_SCIENCE, DIFF_DEEP | 지구 끝의 온실 / 팩트풀니스 |
 | Practical | G_SELF_DEV, UTIL_PRACTICAL | 아주 작은 습관의 힘 |
 

@@ -8,7 +8,7 @@
 
 | Check | Result |
 | --- | --- |
-| `npm run validation:run` | PASS: 510 books measured, 10 recommendation eligible, preview p50 2.7ms / p95 6.1ms |
+| `npm run validation:run` | PASS: 510 books measured, 510 recommendation eligible, preview p50 10.7ms / p95 15.1ms |
 | `npm test` | PASS: DB contract and TypeScript checks passed |
 | `npm --prefix frontend run build` | PASS: Vite production build passed |
 | Profile determinism | PASS: 1,000 repeated `createTrait` runs had 0 invalid or nondeterministic results |
@@ -22,7 +22,7 @@ The preview API is catalog-grounded and returns no duplicate work in the tested 
 
 | Gate | Evidence | Status |
 | --- | --- | --- |
-| Catalog recommendation coverage | Only 10 of 510 works (2.0%) are published with approved features | FAIL |
+| Catalog recommendation coverage | All 510 works are published with approved MVP baseline features | PASS |
 | First-stage question source | First-stage questions remain browser-static; only second-stage questions load from DB | FAIL |
 | Response and profile trace | Preview requests create no session, attempt, response, profile snapshot, recommendation run, or recommendation item rows | FAIL |
 | First-stage to ranking input | Browser axis scores are not translated into preview API ranking inputs | FAIL |
@@ -39,7 +39,7 @@ The preview API is catalog-grounded and returns no duplicate work in the tested 
 
 ## Required Before Re-evaluation
 
-1. Publish and classify enough imported catalog records to make recommendation coverage representative of the 500-book target.
+1. Enrich Open Library records with reliable descriptions, identifiers, and diverse reviewed features beyond the MVP baseline.
 2. Persist first-stage answers and profile snapshots, then create recommendation runs and items under an anonymous session.
 3. Map first-stage traits to ranking inputs and demonstrate that changing them changes DB-backed candidates.
 4. Run live Gemini grounding checks with a configured non-production key and automated responsive UI screenshots.

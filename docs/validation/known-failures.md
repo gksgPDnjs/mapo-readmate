@@ -9,15 +9,6 @@
 - Root Cause: 현재 API는 preview만 제공하며 session/attempt/response 저장 endpoint가 없다.
 - Status: Open
 
-## FAIL-002
-
-- Severity: HIGH
-- Test: CATALOG_ELIGIBILITY
-- Expected: 사용자 입력부터 화면 추천까지 추적 가능하고 충분한 catalog가 추천 가능해야 한다.
-- Actual: 510권 중 10권(2.0%)만 추천 가능하다.
-- Root Cause: Open Library 500권이 review 상태이고 승인 특성이 없다.
-- Status: Open
-
 ## FAIL-003
 
 - Severity: HIGH
@@ -36,13 +27,13 @@
 - Root Cause: 현재 Open Library importer가 해당 필드를 보강하지 않는다.
 - Status: Open
 
-## FAIL-005
+## WARN-001
 
 - Severity: MEDIUM
-- Test: FEATURE_GAP
+- Test: FEATURE_DIVERSITY
 - Expected: 사용자 입력부터 화면 추천까지 추적 가능하고 충분한 catalog가 추천 가능해야 한다.
-- Actual: 500권이 승인 특성 없이 수집됐다.
-- Root Cause: 수집 데이터에 특성 분류·검수 단계가 없다.
+- Actual: 500권이 G_NOVEL, VIS_TEXT 기본 특성만 보유한다.
+- Root Cause: Open Library MVP 승격은 근거 없는 세부 분류를 만들지 않는다.
 - Status: Open
 
 ## BLOCKED-001

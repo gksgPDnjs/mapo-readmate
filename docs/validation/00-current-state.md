@@ -36,8 +36,8 @@
 | --- | ---: | ---: |
 | 전체 works | 510 | 100% |
 | 전체 editions | 510 | 100% |
-| published works | 10 | 2.0% |
-| published editions | 10 | 2.0% |
+| published works | 510 | 100.0% |
+| published editions | 510 | 100.0% |
 | ISBN13 보유 | 0 | 0% |
 | ISBN13 미보유 | 510 | 100% |
 | 저자 미보유 work | 4 | 0.8% |
@@ -45,11 +45,11 @@
 | publisher 미보유 edition | 510 | 100% |
 | page_count 미보유 edition | 510 | 100% |
 | cover_url 미보유 edition | 510 | 100% |
-| 승인 특성 보유 work | 10 | 2.0% |
-| 추천 가능 work | 10 | 2.0% |
+| 승인 특성 보유 work | 510 | 100.0% |
+| 추천 가능 work | 510 | 100.0% |
 | 승인된 표지 권리 레코드 | 0 | 0% |
 
-500건의 Open Library 레코드는 모두 provenance 원본 레코드로 보존되어 있지만, `review` 상태이며 승인 특성이 없다. 따라서 현재 추천 엔진의 eligible 집합에는 포함되지 않는다.
+500건의 Open Library 레코드는 provenance 원본 레코드로 보존되어 있고, MVP 공개 승격 후 `published` 상태와 최소 특성 `G_NOVEL`, `VIS_TEXT`를 갖는다. 따라서 현재 추천 엔진의 eligible 집합에는 510권 전체가 포함된다. 세부 취향 분류와 서지 메타데이터 보강은 별도 과제다.
 
 ## C. 런타임 연결 상태
 

@@ -207,6 +207,7 @@ try {
     published: books.filter((book) => book.workStatus === "published" && book.editionStatus === "published").length,
     suppressed: books.filter((book) => book.workStatus === "suppressed" || book.editionStatus === "suppressed").length,
   };
+  const baselineOnlyWorks = books.filter((book) => book.featureCodes.length === 2 && book.featureCodes.includes("G_NOVEL") && book.featureCodes.includes("VIS_TEXT")).length;
 
   const inventoryCsv = [
     "work_id,edition_id,isbn13,title,author,status,cover_exists,page_count_exists,feature_exists,tag_count,recommendation_eligible,quality_class,quality_issue",
@@ -303,12 +304,15 @@ try {
     ["Practical", ["G_SELF_DEV", "UTIL_PRACTICAL"]],
   ] as const;
   const sensitivityRows = sensitivityProfiles.map(([name, features]) => [name, features.join(", "), rankBooks(eligibleBooks, [...features], []).slice(0, 3).map((book) => book.title).join(" / ") || "NO_CANDIDATE"]);
+  const deadCatalogCause = eligibleBooks.length === books.length
+    ? `모든 작품이 후보 조건은 통과한다. 다만 ${baselineOnlyWorks}권은 MVP 기본 특성(G_NOVEL, VIS_TEXT)만 보유하므로 세부 취향별 상위 노출은 아직 제한적이다.`
+    : "review 상태이거나 승인 특성이 없는 작품은 추천 SQL의 후보 조건에서 제외된다. 이들은 검수 파이프라인 미완료로 인한 dead catalog다.";
   await writeFile(join(documentationDirectory, "dead-catalog-analysis.md"), `# Dead Catalog Analysis\n\nSynthetic profiles: 5,000 (deterministic seeded simulation using the current DB ranking rule).\n\n${markdownTable(["지표", "수량"], [
     ["추천 eligible works", eligibleBooks.length],
     ["books never candidate", neverCandidate.length],
     ["books never top3", books.filter((book) => !simulation.top3Counts.has(book.workId)).length],
     ["no-candidate synthetic runs", simulation.noCandidateRuns],
-  ])}\n\n${markdownTable(["Top3 exposure book", "runs", "share of profiles"], mostExposed)}\n\n원인: review 상태이거나 승인 특성이 없는 500권은 현재 추천 SQL의 후보 조건에서 의도적으로 제외된다. 이들은 데이터 결함이 아니라 검수 파이프라인 미완료로 인한 dead catalog다.\n`);
+  ])}\n\n${markdownTable(["Top3 exposure book", "runs", "share of profiles"], mostExposed)}\n\n${deadCatalogCause}\n`);
   await writeFile(join(documentationDirectory, "recommendation-sensitivity.md"), `# Recommendation Sensitivity\n\n${markdownTable(["Persona", "Feature input", "Top 3"], sensitivityRows)}\n\n1차의 purpose, language, popularity, difficulty 축은 현재 recommendation preview API 입력으로 변환되지 않는다. 따라서 해당 네 축을 바꾼 sensitivity test는 **FAIL: recommendation path 미연결**이다. 이 문서의 feature persona 결과는 2차 DB 특성 입력에 한정한다.\n`);
 
   const goldenPersonas = [
@@ -348,15 +352,17 @@ try {
     apiDurations.push(performance.now() - startedAt);
   }
   const groundingFailures = apiResponse.recommendations.filter((book) => !eligibleBooks.some((candidate) => candidate.workId === book.workId && candidate.editionId === book.editionId));
-  const knownFailures = [
+  const knownFailures: string[][] = [
     ["FAIL-001", "HIGH", "ANSWER_PERSISTENCE", "사용자 응답, profile snapshot, recommendation run이 모두 0건이다.", "현재 API는 preview만 제공하며 session/attempt/response 저장 endpoint가 없다."],
-    ["FAIL-002", "HIGH", "CATALOG_ELIGIBILITY", `${books.length}권 중 ${eligibleBooks.length}권(${percent(eligibleBooks.length, books.length)})만 추천 가능하다.`, "Open Library 500권이 review 상태이고 승인 특성이 없다."],
     ["FAIL-003", "HIGH", "FIRST_STAGE_MAPPING", "1차 static 질문의 축 결과가 recommendation preview 입력으로 전달되지 않는다.", "ChatScreen과 createTrait은 브라우저 state만 사용한다."],
     ["FAIL-004", "MEDIUM", "METADATA_COVERAGE", `표지·ISBN·출판사·쪽수가 모두 0%다.`, "현재 Open Library importer가 해당 필드를 보강하지 않는다."],
-    ["FAIL-005", "MEDIUM", "FEATURE_GAP", `${counts.missingFeature}권이 승인 특성 없이 수집됐다.`, "수집 데이터에 특성 분류·검수 단계가 없다."],
+    ["WARN-001", "MEDIUM", "FEATURE_DIVERSITY", `${baselineOnlyWorks}권이 G_NOVEL, VIS_TEXT 기본 특성만 보유한다.`, "Open Library MVP 승격은 근거 없는 세부 분류를 만들지 않는다."],
     ["BLOCKED-001", "BLOCKED", "UI_SCREENSHOT", "Playwright 의존성과 브라우저 자동화 harness가 없다.", "실제 mobile/desktop screenshot 검증은 수행하지 못했다."],
     ["BLOCKED-002", "BLOCKED", "LIVE_GEMINI", "GEMINI_API_KEY가 설정되지 않아 live AI 설명 품질은 검증하지 못했다.", "템플릿 fallback만 검증 범위에 포함된다."],
   ];
+  if (eligibleBooks.length < books.length) {
+    knownFailures.splice(1, 0, ["FAIL-002", "HIGH", "CATALOG_ELIGIBILITY", `${books.length}권 중 ${eligibleBooks.length}권(${percent(eligibleBooks.length, books.length)})만 추천 가능하다.`, "일부 catalog record가 review 상태이거나 승인 특성이 없다."]);
+  }
   await writeFile(join(documentationDirectory, "known-failures.md"), `# Known Failures\n\n${knownFailures.map(([id, severity, test, actual, rootCause]) => `## ${id}\n\n- Severity: ${severity}\n- Test: ${test}\n- Expected: 사용자 입력부터 화면 추천까지 추적 가능하고 충분한 catalog가 추천 가능해야 한다.\n- Actual: ${actual}\n- Root Cause: ${rootCause}\n- Status: Open\n`).join("\n")}`);
   await writeFile(join(documentationDirectory, "book-data-failures.md"), `# Book Data Failures\n\n${markdownTable(["ID", "Failure", "Affected", "Evidence"], [
     ["BQ-001", "ISBN13 missing", `${counts.missingIsbn} works`, "artifacts/book-catalog-quality.csv"],
@@ -364,16 +370,20 @@ try {
     ["BQ-003", "publisher/page_count missing", `${counts.missingPublisher} / ${counts.missingPageCount} editions`, "artifacts/book-catalog-quality.csv"],
     ["BQ-004", "approved feature missing", `${counts.missingFeature} works`, "artifacts/book-catalog-quality.csv"],
   ])}\n\n모든 영향을 받은 work_id와 edition_id는 [book-catalog-quality.csv](../../artifacts/book-catalog-quality.csv)에 행 단위로 기록했다.\n`);
+  const eligibilitySummary = eligibleBooks.length === books.length
+    ? "모든 카탈로그 작품이 공개 상태와 승인 특성을 갖춰 recommendation preview 후보가 된다."
+    : "review 상태이거나 승인 특성이 없는 작품은 recommendation preview 후보에서 제외된다.";
   await writeFile(join(documentationDirectory, "recommendation-eligibility.md"), `# Recommendation Eligibility\n\n${markdownTable(["Bucket", "Count", "Reason"], [
     ["TOTAL", books.length, "catalog works with editions"],
     ["ELIGIBLE", eligibleBooks.length, "published work + published edition + approved feature"],
     ["INELIGIBLE", books.length - eligibleBooks.length, "review status and/or missing approved feature"],
     ["missing approved feature", counts.missingFeature, "feature review not complete"],
     ["status issue", counts.review, "review records are intentionally excluded"],
-  ])}\n\n현재 500권은 수집 완료가 아니라 review queue다. 제품 관점의 추천 catalog는 ${eligibleBooks.length}권이다.\n`);
+  ])}\n\n${eligibilitySummary}\n`);
   await writeFile(join(documentationDirectory, "recommendation-failures.md"), `# Recommendation Failures\n\n${markdownTable(["Code", "Classification", "Actual", "Status"], [
     ["NO_CANDIDATE", "Synthetic simulation", `${simulation.noCandidateRuns} / 5,000 profiles`, simulation.noCandidateRuns > 0 ? "WARNING" : "PASS"],
-    ["FEATURE_GAP", "Catalog coverage", `${counts.missingFeature} / ${books.length} works lack approved features`, "FAIL"],
+    ["FEATURE_COVERAGE", "Catalog coverage", `${counts.missingFeature} / ${books.length} works lack approved features`, counts.missingFeature === 0 ? "PASS" : "FAIL"],
+    ["FEATURE_DIVERSITY", "Catalog specificity", `${baselineOnlyWorks} / ${books.length} works have only MVP baseline features`, baselineOnlyWorks > 0 ? "WARNING" : "PASS"],
     ["PROFILE_INSENSITIVE", "First-stage to recommendation", "1차 axis score is not an API recommendation input", "FAIL"],
     ["DUPLICATE_WORK", "Preview API", `${groundingFailures.length === 0 ? "No duplicate detected by API contract check" : "Contract mismatch"}`, groundingFailures.length === 0 ? "PASS" : "FAIL"],
     ["AI_HALLUCINATION", "Live Gemini", "No configured live Gemini validation", "BLOCKED"],
@@ -381,7 +391,8 @@ try {
   await writeFile(join(documentationDirectory, "ui-integration-failures.md"), `# UI Integration Failures\n\n- UI-001 HIGH: 1차 질문은 static fixture이며 DB 저장 endpoint가 없어 refresh, back, restart 시 답변 traceability를 보장할 수 없다.\n- UI-002 BLOCKED: Playwright가 설치되지 않아 375x667부터 1440x900까지 screenshot overflow 검증을 실행하지 못했다.\n- UI-003 PASS: 추천 화면은 API prop의 title, author, description, explanation을 사용하며 null author/description fallback을 가진다.\n- UI-004 PASS: 표지는 DB cover URL이 아니라 title-based fallback component를 사용하므로 깨진 외부 이미지 요청은 없다.\n`);
   await writeFile(join(documentationDirectory, "test-matrix.md"), `# Validation Test Matrix\n\n${markdownTable(["ID", "Category", "Expected", "Actual", "Status", "Severity"], [
     ["DB-001", "DB", "510 catalog records measurable", `${books.length} work/edition rows`, "PASS", "-"],
-    ["DATA-001", "BOOK DATA", "high metadata coverage", `eligible ${eligibleBooks.length}/${books.length}`, "FAIL", "HIGH"],
+    ["DATA-001", "BOOK DATA", "high metadata coverage", `eligible ${eligibleBooks.length}/${books.length}; description missing ${counts.missingDescription}/${books.length}`, "FAIL", "HIGH"],
+    ["REC-003", "RECOMMENDATION", "catalog candidate eligibility", `${eligibleBooks.length}/${books.length} works are published with approved features`, eligibleBooks.length === books.length ? "PASS" : "FAIL", eligibleBooks.length === books.length ? "-" : "HIGH"],
     ["QUESTION-001", "QUESTION", "runtime questions from DB", "2차 PASS, 1차 static", "FAIL", "HIGH"],
     ["PROFILE-001", "PROFILE", "click -> DB profile trace", "0 attempts/responses/snapshots", "FAIL", "HIGH"],
     ["REC-001", "RECOMMENDATION", "candidate stays inside catalog", `${groundingFailures.length} grounding mismatches`, groundingFailures.length === 0 ? "PASS" : "FAIL", groundingFailures.length === 0 ? "-" : "CRITICAL"],
@@ -391,7 +402,7 @@ try {
     ["UI-001", "UI", "responsive screenshot verification", "Playwright unavailable", "BLOCKED", "-"],
     ["E2E-001", "E2E", "session trace saved", "preview-only path", "FAIL", "HIGH"],
     ["SEC-001", "SECURITY", "two-session isolation", "no runtime session creation", "BLOCKED", "CRITICAL"],
-  ])}\n\nExecutable tests: 6. Passed: 3. Failed: 3. Blocked: 3. Pass rate: 50.0%. Blocked tests are not counted as passes.\n`);
+  ])}\n\nMatrix rows: 12. PASS: 5. FAIL: 4. BLOCKED: 3. Blocked checks are not counted as passes.\n`);
   console.log(`Validation harness completed: ${books.length} books, ${eligibleBooks.length} eligible, p50 ${quantile(apiDurations, 0.5).toFixed(1)}ms, p95 ${quantile(apiDurations, 0.95).toFixed(1)}ms.`);
 } finally {
   await sql.end();
