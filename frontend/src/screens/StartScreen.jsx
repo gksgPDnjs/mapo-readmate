@@ -63,7 +63,6 @@ function StartScreen({ onNext, onOpenSetup }) {
         </div>
       </div>
       <div className="screen-copy">
-        <p className="start-eyebrow">🌱 AI 독서 성향 테스트</p>
         <h1>
           나에게 맞는 책,<br />
           <span className="start-highlight">AI</span>가 찾아드려요
