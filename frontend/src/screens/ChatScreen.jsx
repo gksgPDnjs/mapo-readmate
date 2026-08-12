@@ -3,7 +3,7 @@ import ChatBubble from '../components/ChatBubble'
 import Button from '../components/Button'
 import './ChatScreen.css'
 
-function ChatScreen({ onAnswer, onFirstStageComplete }) {
+function ChatScreen({ onFirstStageComplete }) {
   const [questions, setQuestions] = useState([])
   const [sessionId, setSessionId] = useState('')
   const [step, setStep] = useState(0)
@@ -62,7 +62,6 @@ function ChatScreen({ onAnswer, onFirstStageComplete }) {
 
       const nextStep = step + 1
       const newHistory = [...history, { from: 'user', text: option.label }]
-      onAnswer({ axis: questions[step].dimensionCode, score: option.score })
 
       if (nextStep < questions.length) {
         newHistory.push({ from: 'ai', text: questions[nextStep].prompt })

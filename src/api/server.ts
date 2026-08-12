@@ -1,6 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import Fastify from "fastify";
+import fastifyStatic from "@fastify/static";
 import postgres from "postgres";
 import { findRecommendations, type RecommendationRequest } from "./recommendation-service.js";
 import { determineTraitCodeByAi } from "./ai-trait.js";
@@ -44,19 +46,28 @@ const TRAIT_TYPES = loadTraitTypes();
 const VALID_TRAIT_CODES = new Set(TRAIT_TYPES.map((entry) => entry.code));
 const TRAIT_TYPE_SUMMARY = TRAIT_TYPES.map((entry) => `${entry.code}: ${entry.title} - ${entry.description}`).join("\n");
 
-function computeAxes(scores: Record<string, number>) {
-  return Object.entries(firstStageDimensionLabels).map(([dimensionCode, labels]) => {
+// axes의 "우세한 쪽"은 반드시 code의 실제 글자를 따라야 한다 — 원점수 부호로 독립적으로
+// 계산하면, AI가 규칙기반과 다른 코드를 골랐을 때 코드 글자와 막대그래프가 서로 모순된다.
+function computeAxes(code: string, scores: Record<string, number>) {
+  return Object.entries(firstStageDimensionLabels).map(([dimensionCode, labels], index) => {
     const score = scores[dimensionCode] ?? 0;
-    const rightDominant = score >= 0;
+    const letter = code[index];
+    const rightDominant = letter === labels.rightCode;
     return {
       code: dimensionCode,
       score,
       label: rightDominant ? labels.right : labels.left,
-      letter: rightDominant ? labels.rightCode : labels.leftCode,
+      letter,
       opposite: rightDominant ? labels.left : labels.right,
       value: rightDominant ? Math.round((score + 100) / 2) : Math.round((100 - score) / 2),
     };
   });
+}
+
+function ruleBasedCodeFromScores(scores: Record<string, number>) {
+  return Object.entries(firstStageDimensionLabels)
+    .map(([dimensionCode, labels]) => ((scores[dimensionCode] ?? 0) >= 0 ? labels.rightCode : labels.leftCode))
+    .join("");
 }
 
 function buildTrait(code: string, axes: ReturnType<typeof computeAxes>) {
@@ -70,21 +81,17 @@ function buildTrait(code: string, axes: ReturnType<typeof computeAxes>) {
   };
 }
 
-function firstStageTrait(scores: Record<string, number>) {
-  const axes = computeAxes(scores);
-  const code = axes.map((axis) => axis.letter).join("");
-  return buildTrait(code, axes);
-}
-
 function firstStageFeatureCodes(scores: Record<string, number>) {
   const codes = new Set<string>();
   const purpose = scores.purpose_knowledge_story ?? 0;
   const language = scores.language_east_west ?? 0;
+  const popularity = scores.popularity_mainstream_discovery ?? 0;
   const difficulty = scores.difficulty_light_deep ?? 0;
 
   codes.add(purpose >= 0 ? "G_NOVEL" : "D_HUMAN");
   if (language < -15) codes.add("O_KR");
   if (language > 15) codes.add("O_EN");
+  codes.add(popularity >= 0 ? "POP_NICHE" : "POP_MAINSTREAM");
   codes.add(difficulty < -15 ? "DIFF_EASY" : difficulty > 15 ? "DIFF_DEEP" : "DIFF_MEDIUM");
   return [...codes];
 }
@@ -340,20 +347,21 @@ app.post("/api/sessions/:id/complete", async (request, reply) => {
       dimension.count += 1;
     }
     const scores = Object.fromEntries(Object.entries(totals).map(([code, total]) => [code, Math.round((total.total / total.count) * 100)]));
-    const axes = computeAxes(scores);
-    const ruleBasedCode = axes.map((axis) => axis.letter).join("");
+    const ruleBasedCode = ruleBasedCodeFromScores(scores);
     const traitCode = await resolveTraitCode(database, sessionId, ruleBasedCode);
+    const axes = computeAxes(traitCode, scores);
     const trait = buildTrait(traitCode, axes);
+    const preferredFeatureCodes = firstStageFeatureCodes(scores);
     const recommendationResult = await findRecommendations(transaction, {
-      preferredFeatureCodes: firstStageFeatureCodes(scores), avoidedFeatureCodes: [], limit: 3,
+      preferredFeatureCodes, avoidedFeatureCodes: [], limit: 3,
     });
     if (recommendationResult.recommendations.length !== 3) return { error: "insufficient_candidates" as const };
     const snapshots = await transaction<{ id: string }[]>`
       insert into recommendation.preference_profile_snapshots (
-        session_id, quiz_attempt_id, rule_set_id, access_tier, dimension_set_id, sequence, dimension_scores, confidence_scores
+        session_id, quiz_attempt_id, rule_set_id, access_tier, dimension_set_id, sequence, dimension_scores, confidence_scores, trait_code
       ) values (
         ${sessionId}, ${attempts[0].id}, ${attempts[0].ruleSetId}, 'free', ${attempts[0].dimensionSetId}, 1,
-        ${transaction.json(scores)}, ${transaction.json(Object.fromEntries(Object.keys(scores).map((code) => [code, 1])))}
+        ${transaction.json(scores)}, ${transaction.json(Object.fromEntries(Object.keys(scores).map((code) => [code, 1])))}, ${traitCode}
       ) returning id
     `;
     const engines = await transaction<{ id: string }[]>`
@@ -394,6 +402,7 @@ app.post("/api/sessions/:id/complete", async (request, reply) => {
     return {
       publicCode,
       trait,
+      preferredFeatureCodes,
       recommendations: recommendationResult.recommendations.map((recommendation, index) => ({
         role: roles[index],
         ...recommendation,
@@ -409,10 +418,10 @@ app.get("/api/results/:publicCode", async (request, reply) => {
   if (!database) return;
   const { publicCode } = request.params as { publicCode: string };
   const rows = await database<{
-    publicCode: string; dimensionScores: Record<string, number>; role: "read_now" | "stretch" | "discovery";
+    publicCode: string; dimensionScores: Record<string, number>; traitCode: string | null; role: "read_now" | "stretch" | "discovery";
     title: string; author: string | null; description: string | null; totalScore: number; explanation: string | null;
   }[]>`
-    select result_code.public_code as "publicCode", profile.dimension_scores as "dimensionScores", item.role,
+    select result_code.public_code as "publicCode", profile.dimension_scores as "dimensionScores", profile.trait_code as "traitCode", item.role,
       work.canonical_title as title, string_agg(distinct contributor.display_name, ', ') as author, work.description,
       item.total_score::float as "totalScore", rendering.body as explanation
     from recommendation.public_result_codes as result_code
@@ -424,13 +433,14 @@ app.get("/api/results/:publicCode", async (request, reply) => {
     left join catalog.contributors as contributor on contributor.id = credit.contributor_id
     left join recommendation.explanation_renderings as rendering on rendering.item_id = item.id
     where result_code.public_code = ${publicCode.toUpperCase()}
-    group by result_code.public_code, profile.dimension_scores, item.id, work.id, rendering.body
+    group by result_code.public_code, profile.dimension_scores, profile.trait_code, item.id, work.id, rendering.body
     order by item.display_order
   `;
   if (rows.length === 0) return reply.code(404).send({ error: "result_not_found" });
+  const traitCode = rows[0].traitCode ?? ruleBasedCodeFromScores(rows[0].dimensionScores);
   return {
     publicCode: rows[0].publicCode,
-    trait: firstStageTrait(rows[0].dimensionScores),
+    trait: buildTrait(traitCode, computeAxes(traitCode, rows[0].dimensionScores)),
     recommendations: rows.map(({ role, title, author, description, totalScore, explanation }) => ({ role, title, author, description, totalScore, explanation })),
   };
 });
@@ -495,5 +505,18 @@ app.addHook("onClose", async () => {
   await client?.end();
 });
 
-const port = Number(process.env.API_PORT ?? 3001);
+// 배포 단순화를 위해 Fastify가 프론트 빌드 결과물도 같이 서빙한다(별도 정적 호스팅/CORS 불필요).
+// 화면 라우팅은 해시(#setup, #test, #r/CODE) 기반이라 서버는 항상 index.html 하나만 내려주면 된다.
+const distPath = fileURLToPath(new URL("../../frontend/dist", import.meta.url));
+if (existsSync(distPath)) {
+  await app.register(fastifyStatic, { root: distPath });
+  app.setNotFoundHandler((request, reply) => {
+    if (request.raw.url?.startsWith("/api") || request.raw.url === "/health") {
+      return reply.code(404).send({ error: "not_found" });
+    }
+    return reply.sendFile("index.html");
+  });
+}
+
+const port = Number(process.env.PORT ?? process.env.API_PORT ?? 3001);
 await app.listen({ port, host: "0.0.0.0" });

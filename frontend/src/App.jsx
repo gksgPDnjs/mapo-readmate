@@ -8,7 +8,7 @@ import BookRecommendScreen from './screens/BookRecommendScreen'
 import ReportScreen from './screens/ReportScreen'
 import DatabaseSetupScreen from './screens/DatabaseSetupScreen'
 import DatabaseTestScreen from './screens/DatabaseTestScreen'
-import { createTrait } from './data/traitScoring'
+import PublicResultScreen from './screens/PublicResultScreen'
 import { STEP } from './constants'
 import './App.css'
 
@@ -25,9 +25,10 @@ const SCREENS = [
 function App() {
   const [step, setStep] = useState(0)
   const [toolScreen, setToolScreen] = useState(() => window.location.hash)
-  const [answers, setAnswers] = useState([])
   const [recommendations, setRecommendations] = useState([])
   const [completedTrait, setCompletedTrait] = useState(null)
+  const [firstStagePreferredFeatureCodes, setFirstStagePreferredFeatureCodes] = useState([])
+  const [publicCode, setPublicCode] = useState('')
 
   useEffect(() => {
     const syncToolScreen = () => setToolScreen(window.location.hash)
@@ -39,25 +40,27 @@ function App() {
   const goNext = () => setStep((s) => Math.min(s + 1, SCREENS.length - 1))
   const goTo = (index) => {
     if (index === STEP.START) {
-      setAnswers([])
       setRecommendations([])
       setCompletedTrait(null)
+      setFirstStagePreferredFeatureCodes([])
+      setPublicCode('')
     }
     setStep(index)
   }
   const restart = () => {
-    setAnswers([])
     setRecommendations([])
     setCompletedTrait(null)
+    setFirstStagePreferredFeatureCodes([])
+    setPublicCode('')
     setStep(0)
   }
   const retakeQuiz = () => {
-    setAnswers([])
     setRecommendations([])
     setCompletedTrait(null)
+    setFirstStagePreferredFeatureCodes([])
+    setPublicCode('')
     setStep(1)
   }
-  const recordAnswer = (answer) => setAnswers((currentAnswers) => [...currentAnswers, answer])
   const completeDeepQuiz = (nextRecommendations) => {
     setRecommendations(nextRecommendations)
     setStep(STEP.BOOKS)
@@ -65,6 +68,8 @@ function App() {
   const completeFirstStageQuiz = (result) => {
     setRecommendations(Array.isArray(result.recommendations) ? result.recommendations : [])
     setCompletedTrait({ emoji: '📚', ...result.trait })
+    setFirstStagePreferredFeatureCodes(Array.isArray(result.preferredFeatureCodes) ? result.preferredFeatureCodes : [])
+    setPublicCode(typeof result.publicCode === 'string' ? result.publicCode : '')
     setStep(STEP.LOADING)
   }
   const openSetup = () => {
@@ -78,12 +83,18 @@ function App() {
     setToolScreen('')
   }
 
-  if (toolScreen === '#setup') {
+  // 운영자 진단 화면(DB 카탈로그 수치 등)은 개발 모드에서만 열린다 —
+  // 부스에 배포된 프로덕션 빌드에서는 방문자가 해시만 알아도 볼 수 없어야 한다.
+  if (import.meta.env.DEV && toolScreen === '#setup') {
     return <DatabaseSetupScreen onClose={closeSetup} onOpenTest={openTest} />
   }
 
-  if (toolScreen === '#test') {
+  if (import.meta.env.DEV && toolScreen === '#test') {
     return <DatabaseTestScreen onClose={openSetup} />
+  }
+
+  if (toolScreen.startsWith('#r/')) {
+    return <PublicResultScreen code={toolScreen.slice('#r/'.length)} />
   }
 
   return (
@@ -92,13 +103,13 @@ function App() {
       onRestart={restart}
       onGoTo={goTo}
       onOpenSetup={openSetup}
-      onAnswer={recordAnswer}
       onFirstStageComplete={completeFirstStageQuiz}
-      onViewRecommendations={() => setStep(STEP.BOOKS)}
       onRetake={retakeQuiz}
       onDeepComplete={completeDeepQuiz}
       recommendations={recommendations}
-      trait={completedTrait ?? createTrait(answers)}
+      firstStagePreferredFeatureCodes={firstStagePreferredFeatureCodes}
+      publicCode={publicCode}
+      trait={completedTrait}
     />
   )
 }

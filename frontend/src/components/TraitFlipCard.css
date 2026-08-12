@@ -1,5 +1,6 @@
 .flip-card {
   align-self: center;
+  flex-shrink: 0;
   width: 220px;
   height: 260px;
   perspective: 1200px;

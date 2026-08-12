@@ -7,7 +7,7 @@
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  margin-top: 36px;
+  margin-top: 28px;
 }
 
 .brand {
@@ -19,12 +19,38 @@
 }
 
 .screen-start .screen-copy {
-  margin-top: 12px;
+  margin-top: 4px;
+  gap: 10px;
+}
+
+.screen-start h1 {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.screen-copy .start-eyebrow {
+  align-self: center;
+  display: inline-flex;
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: var(--color-accent-soft);
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin: 0 0 2px;
+}
+
+.start-highlight {
+  color: var(--color-accent);
 }
 
 .book-stack {
   position: relative;
-  height: 150px;
+  flex-shrink: 0;
+  height: 160px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -34,10 +60,58 @@
 .book-stack::before {
   content: '';
   position: absolute;
-  inset: -20px -40px auto;
-  height: 170px;
+  inset: -30px -50px auto;
+  height: 190px;
   background: radial-gradient(circle, var(--color-accent-soft) 0%, transparent 70%);
   z-index: -1;
+}
+
+.stack-floor {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 130px;
+  height: 16px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(23, 24, 26, 0.14) 0%, transparent 72%);
+  z-index: -1;
+}
+
+.stack-sparkle {
+  position: absolute;
+  font-size: 20px;
+  animation: stack-float 3.4s ease-in-out infinite;
+}
+
+.sparkle-1 {
+  top: 4px;
+  right: 6px;
+  animation-delay: 0s;
+}
+
+.sparkle-2 {
+  bottom: 30px;
+  left: 2px;
+  font-size: 16px;
+  animation-delay: 1.2s;
+}
+
+@keyframes stack-float {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stack-sparkle {
+    animation: none;
+  }
 }
 
 .stack-book {

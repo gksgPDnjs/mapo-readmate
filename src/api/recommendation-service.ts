@@ -1,4 +1,5 @@
 import postgres from "postgres";
+import { createApimClient } from "../ai/apimClient.js";
 
 export type RecommendationRequest = {
   preferredFeatureCodes: string[];
@@ -24,7 +25,7 @@ export type Recommendation = {
   score: number;
   matchedFeatureCodes: string[];
   explanation: string;
-  explanationSource: "template" | "gemini";
+  explanationSource: "template" | "apim";
 };
 
 export type RecommendationResult = {
@@ -41,39 +42,29 @@ export const uniqueFeatureCodes = (codes: string[]) => [...new Set(codes.filter(
 
 async function renderExplanation(candidate: CatalogCandidate, matches: string[]): Promise<Pick<Recommendation, "explanation" | "explanationSource">> {
   const fallback = `선택한 특성 ${matches.join(", ")}과 잘 맞는 검수된 도서 후보입니다.`;
-  const apiKey = process.env.GEMINI_API_KEY;
+  const config = createApimClient();
 
-  if (!apiKey || matches.length === 0) {
+  if (!config || matches.length === 0) {
     return { explanation: fallback, explanationSource: "template" };
   }
 
   try {
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: [
-              "아래 검증된 정보만 사용해 한국어로 한 문장 추천 이유를 작성하세요.",
-              "새 줄거리, 수상, 판매량, 독자 정보는 절대 추가하지 마세요.",
-              `제목: ${candidate.title}`,
-              `검증된 일치 특성: ${matches.join(", ")}`,
-            ].join("\n"),
-          }],
-        }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 120 },
-      }),
-      signal: AbortSignal.timeout(5_000),
-    });
-    const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
-    const text = payload.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const prompt = [
+      "아래 검증된 정보만 사용해 한국어로 한 문장 추천 이유를 작성하세요.",
+      "새 줄거리, 수상, 판매량, 독자 정보는 절대 추가하지 마세요. 문장 하나만 출력하세요.",
+      `제목: ${candidate.title}`,
+      `검증된 일치 특성: ${matches.join(", ")}`,
+    ].join("\n");
 
-    return response.ok && text && text.length <= 280
-      ? { explanation: text, explanationSource: "gemini" }
+    const response = await config.client.responses.create({
+      model: config.model,
+      input: prompt,
+      max_output_tokens: 200,
+    });
+    const text = response.output_text?.trim();
+
+    return text && text.length > 0 && text.length <= 280
+      ? { explanation: text, explanationSource: "apim" }
       : { explanation: fallback, explanationSource: "template" };
   } catch {
     return { explanation: fallback, explanationSource: "template" };

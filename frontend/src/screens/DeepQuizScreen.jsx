@@ -3,7 +3,7 @@ import Button from '../components/Button'
 import { STEP } from '../constants'
 import './DeepQuizScreen.css'
 
-function DeepQuizScreen({ onDeepComplete, onGoTo }) {
+function DeepQuizScreen({ onDeepComplete, onGoTo, firstStagePreferredFeatureCodes = [] }) {
   const [questions, setQuestions] = useState([])
   const [answers, setAnswers] = useState({})
   const [step, setStep] = useState(0)
@@ -54,12 +54,16 @@ function DeepQuizScreen({ onDeepComplete, onGoTo }) {
     const selectedOptions = questions.flatMap((currentQuestion) =>
       currentQuestion.options.filter((option) => (answers[currentQuestion.code] ?? []).includes(option.code)),
     )
-    const preferredFeatureCodes = selectedOptions
+    const avoidedFeatureCodes = [...new Set(selectedOptions
+      .filter((option) => option.value.preference === 'avoid')
+      .map((option) => option.value.featureCode))]
+    // 1차 성향(동양/서양, 유명세/신인, 난이도 등)을 2차 정밀 조건과 합쳐서 보낸다.
+    // 2차에서 명시적으로 피한 항목이 1차 성향과 겹치면 회피가 우선한다.
+    const deepPreferredFeatureCodes = selectedOptions
       .filter((option) => option.value.preference === 'prefer')
       .map((option) => option.value.featureCode)
-    const avoidedFeatureCodes = selectedOptions
-      .filter((option) => option.value.preference === 'avoid')
-      .map((option) => option.value.featureCode)
+    const preferredFeatureCodes = [...new Set([...firstStagePreferredFeatureCodes, ...deepPreferredFeatureCodes])]
+      .filter((code) => !avoidedFeatureCodes.includes(code))
 
     setStatus('submitting')
     setError('')

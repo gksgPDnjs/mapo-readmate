@@ -36,3 +36,5 @@ avoid_element,AVOID_DARK,우울함/슬픔,마음이 침체되거나 지나치게
 avoid_element,AVOID_HARD,어려운 용어,전문적인 개념이나 어려운 기호가 많은 내용
 avoid_element,AVOID_CRUEL,잔인함/공포,자극적이거나 잔혹하고 무서운 장면
 avoid_element,AVOID_LONG,지나치게 길고 완만한 전개,초반 몰입이 어렵고 호흡이 너무 긴 내용
+popularity,POP_MAINSTREAM,유명세 보장,베스트셀러/스테디셀러로 널리 알려지고 검증된 작품
+popularity,POP_NICHE,신인 발굴,대중적으로 덜 알려졌지만 개성 있는 신인·독립 작품

@@ -4,7 +4,7 @@ import TraitFlipCard from '../components/TraitFlipCard'
 import TraitAxisBar from '../components/TraitAxisBar'
 import './TraitResultScreen.css'
 
-function TraitResultScreen({ onNext, onRetake, onViewRecommendations, trait }) {
+function TraitResultScreen({ onNext, onRetake, trait }) {
   const [flipped, setFlipped] = useState(false)
 
   return (
@@ -26,12 +26,11 @@ function TraitResultScreen({ onNext, onRetake, onViewRecommendations, trait }) {
           <div className="axis-card">
             <h3>성향 분석</h3>
             {trait.axes.map((axis) => (
-              <TraitAxisBar key={axis.letter} axis={axis} />
+              <TraitAxisBar key={axis.code} axis={axis} />
             ))}
           </div>
           <div className="screen-actions">
-            <Button onClick={onViewRecommendations}>추천 도서 보기</Button>
-            <Button variant="secondary" onClick={onNext}>정밀 조건 더 고르기</Button>
+            <Button onClick={onNext}>정밀 조건 더 고르기</Button>
             <Button variant="secondary" onClick={onRetake}>
               다시 분석하기
             </Button>

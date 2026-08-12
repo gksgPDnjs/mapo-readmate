@@ -51,16 +51,23 @@ function StartScreen({ onNext, onOpenSetup }) {
     <div className="screen screen-start">
       <div className="logo-block">
         <div className="book-stack" aria-hidden="true">
+          <span className="stack-sparkle sparkle-1">✨</span>
+          <span className="stack-sparkle sparkle-2">🌱</span>
           <span className="stack-book stack-book-1" />
           <span className="stack-book stack-book-2" />
           <span className="stack-book stack-book-3" />
+          <span className="stack-floor" />
         </div>
         <div className="brand">
           <span aria-hidden="true">📖</span> ReadMate
         </div>
       </div>
       <div className="screen-copy">
-        <h1>나에게 맞는 책을 AI가 찾아드려요</h1>
+        <p className="start-eyebrow">🌱 AI 독서 성향 테스트</p>
+        <h1>
+          나에게 맞는 책,<br />
+          <span className="start-highlight">AI</span>가 찾아드려요
+        </h1>
         <p>2분 대화로 독서 취향을 알아보세요</p>
       </div>
       <div className="screen-actions">
@@ -68,9 +75,11 @@ function StartScreen({ onNext, onOpenSetup }) {
         <Button variant="secondary" onClick={() => setView('guide')}>
           체험 안내
         </Button>
-        <button className="text-link" onClick={onOpenSetup}>
-          도서 데이터 설정
-        </button>
+        {import.meta.env.DEV && (
+          <button className="text-link" onClick={onOpenSetup}>
+            도서 데이터 설정
+          </button>
+        )}
       </div>
     </div>
   )

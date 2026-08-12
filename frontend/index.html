@@ -7,6 +7,33 @@
     <title>ReadMate</title>
   </head>
   <body>
+    <!--
+      전시용 배경 장식 — 실제 방문자 휴대폰(좁은 화면)에서는 index.css가 이 블록들을
+      전부 display:none 처리해서 기존과 완전히 동일하게 보인다. 넓은 화면(전시 모니터)일
+      때만 나타난다. React가 관리하지 않는 순수 정적 장식이라 앱 로직과 분리되어 있다.
+    -->
+    <div class="exhibit-backdrop" aria-hidden="true">
+      <span class="exhibit-blob blob-a"></span>
+      <span class="exhibit-blob blob-b"></span>
+      <span class="exhibit-blob blob-c"></span>
+      <span class="exhibit-particle p1">📖</span>
+      <span class="exhibit-particle p2">🌱</span>
+      <span class="exhibit-particle p3">📚</span>
+      <span class="exhibit-particle p4">🍃</span>
+      <span class="exhibit-particle p5">✨</span>
+      <span class="exhibit-particle p6">📖</span>
+    </div>
+    <aside class="exhibit-side">
+      <p class="exhibit-kicker">🌱 AI 독서 성향 테스트</p>
+      <h1 class="exhibit-title">
+        나에게 맞는 책,<br />
+        AI가 찾아드려요
+      </h1>
+      <p class="exhibit-tagline">
+        2분 대화로 알아보는 나의 독서 성향<br />
+        마지막엔 QR로 결과를 가져가세요
+      </p>
+    </aside>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

@@ -1,19 +1,21 @@
 .axis-bar {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .axis-bar-labels {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   font-size: 12px;
   color: var(--color-text-muted);
 }
 
 .axis-bar-label.is-dominant {
-  color: var(--color-accent);
+  color: var(--color-text);
   font-weight: 700;
+  font-size: 13px;
 }
 
 .axis-bar-track {
@@ -25,6 +27,6 @@
 
 .axis-bar-fill {
   height: 100%;
-  background: var(--color-accent);
   border-radius: 999px;
+  background: linear-gradient(90deg, #2fa360 0%, #7fd39a 100%);
 }

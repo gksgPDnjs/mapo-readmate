@@ -47,7 +47,12 @@ body {
 @media (min-width: 480px) {
   #root {
     position: relative;
+    z-index: 1;
+    grid-column: 2;
+    width: auto;
+    max-width: none;
     height: min(900px, 96dvh);
+    aspect-ratio: 460 / 900;
     padding-top: 24px;
     border: 10px solid #111318;
     border-radius: 44px;
@@ -65,6 +70,185 @@ body {
     background: #111318;
     border-radius: 0 0 14px 14px;
     z-index: 10;
+  }
+}
+
+/* 전시용 배경 — 부스의 큰 모니터/스탠바이미처럼 넓은 화면에서만 켜진다.
+   좁은 화면(실제 방문자 휴대폰)에서는 .exhibit-* 전부 숨겨져 기존과 동일하다. */
+.exhibit-backdrop,
+.exhibit-side {
+  display: none;
+}
+
+@media (min-width: 480px) {
+  body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: clamp(24px, 4vw, 64px);
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(ellipse at top, #eafaf0 0%, #dcf1e4 45%, #cfe9da 100%);
+  }
+
+  .exhibit-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .exhibit-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.55;
+    animation: exhibit-drift 26s ease-in-out infinite alternate;
+  }
+
+  .blob-a {
+    width: 46vmax;
+    height: 46vmax;
+    left: -16vmax;
+    top: -12vmax;
+    background: radial-gradient(circle, #2fa360, transparent 70%);
+  }
+
+  .blob-b {
+    width: 38vmax;
+    height: 38vmax;
+    right: -14vmax;
+    bottom: -16vmax;
+    background: radial-gradient(circle, #7fd39a, transparent 70%);
+    animation-duration: 32s;
+    animation-delay: -6s;
+  }
+
+  .blob-c {
+    width: 26vmax;
+    height: 26vmax;
+    right: 6vmax;
+    top: -10vmax;
+    background: radial-gradient(circle, #ffe3a1, transparent 70%);
+    animation-duration: 22s;
+    animation-delay: -12s;
+  }
+
+  @keyframes exhibit-drift {
+    from {
+      transform: translate(0, 0) scale(1);
+    }
+    to {
+      transform: translate(4vmax, 5vmax) scale(1.1);
+    }
+  }
+
+  .exhibit-particle {
+    position: absolute;
+    bottom: -10vh;
+    font-size: clamp(20px, 2.2vmax, 32px);
+    opacity: 0;
+    animation: exhibit-rise 18s ease-in infinite;
+    filter: drop-shadow(0 4px 10px rgba(23, 24, 26, 0.1));
+  }
+
+  .p1 { left: 6%; animation-delay: 0s; }
+  .p2 { left: 16%; animation-delay: 3s; font-size: clamp(16px, 1.6vmax, 24px); }
+  .p3 { left: 88%; animation-delay: 6s; }
+  .p4 { left: 94%; animation-delay: 9s; font-size: clamp(16px, 1.6vmax, 24px); }
+  .p5 { left: 78%; animation-delay: 2s; }
+  .p6 { left: 10%; animation-delay: 12s; font-size: clamp(16px, 1.6vmax, 24px); }
+
+  @keyframes exhibit-rise {
+    0% {
+      opacity: 0;
+      transform: translateY(0) rotate(-8deg);
+    }
+    12% {
+      opacity: 0.75;
+    }
+    88% {
+      opacity: 0.45;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-110vh) rotate(10deg);
+    }
+  }
+
+  /*
+    안내 문구는 폰 목업과 같은 grid row의 1번 컬럼에 놓여 폰 옆(왼쪽)에 위치한다.
+    #root는 2번 컬럼에 고정되고 3번 컬럼은 비워둬서(1fr/auto/1fr) 폰이 항상 화면
+    정중앙을 유지한다 — 창 높이가 얼마든 폰 위치·앱 동작에는 전혀 영향이 없다.
+  */
+  .exhibit-side {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: end;
+    align-self: center;
+    z-index: 1;
+    max-width: 360px;
+    text-align: right;
+    animation: exhibit-fade-in 1s ease-out both;
+  }
+
+  .exhibit-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--color-accent);
+    background: rgba(47, 163, 96, 0.12);
+    padding: 5px 14px;
+    border-radius: 999px;
+    margin: 0 0 10px;
+  }
+
+  .exhibit-title {
+    margin: 0;
+    font-size: clamp(20px, 2.2vw, 32px);
+    line-height: 1.32;
+    font-weight: 700;
+    color: var(--color-text);
+    letter-spacing: -0.01em;
+  }
+
+  .exhibit-tagline {
+    margin: 12px 0 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+  }
+
+  @keyframes exhibit-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .exhibit-blob,
+    .exhibit-particle,
+    .exhibit-side {
+      animation: none;
+    }
+  }
+}
+
+/* 폰 옆에 안내 문구까지 여유 있게 놓을 만큼 창이 넓을 때만 보여준다.
+   480~899px 사이(좁은 창)에서는 폰 목업 + 배경만 보이고 문구는 생략된다. */
+@media (min-width: 900px) {
+  .exhibit-side {
+    display: block;
   }
 }
 
