@@ -25,6 +25,7 @@
     "mcp:check": "tsx scripts/check-mcp-book-tools.ts",
     "recommendations:check": "tsx scripts/check-recommendation-flow.ts",
     "trait-coverage:check": "tsx scripts/check-trait-coverage.ts",
+    "covers:fetch": "tsx scripts/fetch-book-covers.ts",
     "validation:run": "tsx scripts/run-validation-harness.ts",
     "db:dev:up": "docker compose up --detach --wait db && tsx scripts/bootstrap-development-db.ts",
     "db:dev:down": "docker compose down",

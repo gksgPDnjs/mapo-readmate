@@ -1,4 +1,5 @@
 import './BookCover.css'
+import coverMap from '../data/bookCovers.json'
 
 const PALETTE = ['#1F7A46', '#2FA360', '#3BB876', '#0E5C33']
 
@@ -11,6 +12,18 @@ function colorForTitle(title) {
 }
 
 function BookCover({ title, className = '' }) {
+  const coverSrc = coverMap[title]
+
+  if (coverSrc) {
+    return (
+      <img
+        className={`book-cover-image ${className}`}
+        src={coverSrc}
+        alt={`${title} 표지`}
+      />
+    )
+  }
+
   return (
     <div
       className={`book-cover-visual ${className}`}

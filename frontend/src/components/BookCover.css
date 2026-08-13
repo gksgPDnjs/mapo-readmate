@@ -1,3 +1,12 @@
+.book-cover-image {
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  object-fit: cover;
+  display: block;
+  width: 100%;
+}
+
 .book-cover-visual {
   aspect-ratio: 3 / 4;
   border-radius: var(--radius);
