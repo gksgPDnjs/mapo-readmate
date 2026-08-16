@@ -197,29 +197,35 @@ body {
   .exhibit-kicker {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    font-size: 11px;
+    gap: 6px;
+    font-size: clamp(12px, 1vw, 14px);
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     color: var(--color-accent);
-    background: rgba(47, 163, 96, 0.12);
-    padding: 5px 14px;
+    background: var(--color-accent-soft);
+    padding: 7px 16px;
     border-radius: 999px;
     margin: 0 0 10px;
   }
 
   .exhibit-title {
     margin: 0;
-    font-size: clamp(20px, 2.2vw, 32px);
-    line-height: 1.32;
+    font-size: clamp(28px, 3.4vw, 46px);
+    line-height: 1.28;
     font-weight: 700;
     color: var(--color-text);
     letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  .exhibit-highlight {
+    color: var(--color-accent);
   }
 
   .exhibit-tagline {
     margin: 12px 0 0;
-    font-size: 13px;
+    max-width: 30ch;
+    font-size: clamp(14px, 1.05vw, 17px);
     line-height: 1.6;
     color: var(--color-text-muted);
   }
