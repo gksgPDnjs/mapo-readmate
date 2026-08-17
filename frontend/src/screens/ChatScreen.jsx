@@ -48,6 +48,13 @@ function ChatScreen({ onFirstStageComplete }) {
 
   const isDone = step >= questions.length
 
+  const handleBack = () => {
+    if (status !== 'ready' || step === 0) return
+    setError('')
+    setHistory((currentHistory) => currentHistory.slice(0, -2))
+    setStep((currentStep) => currentStep - 1)
+  }
+
   const handleSelect = async (option) => {
     if (status !== 'ready') return
     setStatus('saving')
@@ -102,7 +109,14 @@ function ChatScreen({ onFirstStageComplete }) {
   return (
     <div className="screen screen-chat">
       <div className="chat-progress">
-        질문 {Math.min(step + 1, questions.length)} / {questions.length}
+        {step > 0 && !isDone && (
+          <button type="button" className="chat-back" onClick={handleBack} disabled={status !== 'ready'}>
+            ← 이전 질문
+          </button>
+        )}
+        <span>
+          질문 {Math.min(step + 1, questions.length)} / {questions.length}
+        </span>
       </div>
       <div className="chat-log">
         {history.map((message, i) => (
