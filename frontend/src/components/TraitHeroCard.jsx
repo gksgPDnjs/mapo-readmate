@@ -4,6 +4,9 @@ function TraitHeroCard({ trait, eyebrow = '나의 독서 성향', showDescriptio
   return (
     <section className="trait-hero">
       <p className="trait-hero-eyebrow">{eyebrow}</p>
+      <div className="trait-hero-portrait">
+        <img src={`/characters/${trait.code}.png`} alt="" />
+      </div>
       <div className="trait-hero-code">{trait.code}</div>
       <p className="trait-hero-name">
         {trait.emoji} {trait.name}

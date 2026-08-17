@@ -2,7 +2,7 @@
   align-self: center;
   flex-shrink: 0;
   width: 220px;
-  height: 260px;
+  height: 320px;
   perspective: 1200px;
   border: none;
   background: none;
@@ -48,13 +48,30 @@
 }
 
 .flip-card-back {
-  background: var(--color-accent);
+  background: linear-gradient(155deg, #2fa360 0%, #38b876 55%, #7fd39a 100%);
   color: #ffffff;
   transform: rotateY(180deg);
 }
 
+.flip-card-portrait {
+  width: 108px;
+  aspect-ratio: 3 / 5;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.flip-card-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom;
+  filter: drop-shadow(0 8px 12px rgba(23, 24, 26, 0.22));
+}
+
 .flip-card-code {
-  font-size: 36px;
+  font-size: 30px;
   font-weight: 800;
   letter-spacing: 4px;
 }

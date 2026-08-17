@@ -21,6 +21,23 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
+.trait-hero-portrait {
+  width: 150px;
+  aspect-ratio: 3 / 5;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.trait-hero-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom;
+  filter: drop-shadow(0 10px 14px rgba(23, 24, 26, 0.22));
+}
+
 .trait-hero-code {
   font-size: 40px;
   font-weight: 800;

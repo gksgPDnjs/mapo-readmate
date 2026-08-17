@@ -14,10 +14,11 @@ function TraitFlipCard({ trait, flipped, onFlip }) {
           <p className="flip-card-hint">눌러서 자세히 보기</p>
         </div>
         <div className="flip-card-face flip-card-back">
+          <div className="flip-card-portrait">
+            <img src={`/characters/${trait.code}.png`} alt="" />
+          </div>
           <span className="flip-card-code">{trait.code}</span>
-          <p className="flip-card-name">
-            {trait.emoji} {trait.name}
-          </p>
+          <p className="flip-card-name">{trait.name}</p>
         </div>
       </div>
     </button>
