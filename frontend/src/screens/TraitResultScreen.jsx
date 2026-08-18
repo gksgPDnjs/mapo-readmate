@@ -8,7 +8,7 @@ function TraitResultScreen({ onNext, onRetake, trait }) {
   const [flipped, setFlipped] = useState(false)
 
   return (
-    <div className="screen screen-trait">
+    <div className={`screen screen-trait ${flipped ? 'is-flipped' : ''}`}>
       <div className="screen-copy">
         <h2>당신의 독서 성향 카드</h2>
         <p>{flipped ? trait.description : '카드를 눌러 결과를 확인해보세요'}</p>

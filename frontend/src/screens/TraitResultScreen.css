@@ -2,6 +2,13 @@
   justify-content: center;
 }
 
+/* 뒤집은 뒤에는 콘텐츠(성향 분석, 버튼 등)가 화면보다 길어질 수 있다.
+   center 정렬 상태에서 넘치면 위쪽 내용이 스크롤로 닿을 수 없는 영역으로
+   밀려나 잘려 보이므로, 뒤집힌 뒤에는 위에서부터 자연스럽게 쌓이게 한다. */
+.screen-trait.is-flipped {
+  justify-content: flex-start;
+}
+
 .keyword-tags {
   display: flex;
   gap: 8px;
