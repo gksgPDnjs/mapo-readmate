@@ -9,7 +9,13 @@ export function createApimClient() {
   const model = process.env.CHAT_MODEL ?? "gpt-5.4";
   if (!baseUrl || !apiKey) return null;
   return {
-    client: new OpenAI({ apiKey: "placeholder", baseURL: `${baseUrl}/${model}/`, defaultHeaders: { "api-key": apiKey } }),
+    client: new OpenAI({
+      apiKey: "placeholder",
+      baseURL: `${baseUrl}/${model}/`,
+      defaultHeaders: { "api-key": apiKey },
+      timeout: 25_000,
+      maxRetries: 1,
+    }),
     model,
   };
 }

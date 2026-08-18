@@ -37,15 +37,28 @@ for (const question of quiz.questions) {
   });
 }
 
+// 1차 완료는 성향 카드만 계산한다 — 추천 도서/publicCode는 2차(finalize)까지 마쳐야 나온다.
 const completed = await (await request(`/api/sessions/${session.id}/complete`, { method: "POST" })).json() as DemoResult;
-assert(completed.publicCode && completed.trait?.code, "Completion did not return a public code and trait.");
-assert(completed.recommendations?.length === 3, "Completion did not produce three recommendations.");
-assert(new Set(completed.recommendations.map((book) => book.role)).size === 3, "Recommendations do not have distinct roles.");
-assert(completed.recommendations.every((book) => book.title && book.explanation), "A recommendation is missing its title or explanation.");
+assert(completed.trait?.code, "Completion did not return a trait.");
+assert(!completed.publicCode && !completed.recommendations, "First-stage completion should not yet produce recommendations/publicCode.");
 
-const result = await (await request(`/api/results/${completed.publicCode}`)).json() as DemoResult;
-assert(result.publicCode === completed.publicCode, "Public result lookup returned the wrong result.");
+const finalized = await (await request(`/api/sessions/${session.id}/finalize`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ preferredFeatureCodes: ["G_NOVEL"], avoidedFeatureCodes: [], limit: 3 }),
+})).json() as DemoResult;
+assert(finalized.publicCode, "Finalize did not return a public code.");
+assert(finalized.recommendations?.length === 3, "Finalize did not produce three recommendations.");
+assert(new Set(finalized.recommendations.map((book) => book.role)).size === 3, "Recommendations do not have distinct roles.");
+assert(finalized.recommendations.every((book) => book.title && book.explanation), "A recommendation is missing its title or explanation.");
+
+const result = await (await request(`/api/results/${finalized.publicCode}`)).json() as DemoResult;
+assert(result.publicCode === finalized.publicCode, "Public result lookup returned the wrong result.");
 assert(result.recommendations?.length === 3, "Public result lookup did not return three recommendations.");
+assert(
+  JSON.stringify(result.recommendations?.map((book) => book.title)) === JSON.stringify(finalized.recommendations.map((book) => book.title)),
+  "QR/public result does not match the recommendations shown at finalize time.",
+);
 
 await request("/api/feedback", {
   method: "POST",
@@ -55,4 +68,4 @@ await request("/api/feedback", {
 const stats = await (await request("/api/admin/demo-stats")).json() as { completedSessions?: number; recommendationItems?: number };
 assert((stats.completedSessions ?? 0) > 0 && (stats.recommendationItems ?? 0) >= 3, "Demo statistics do not include the completed session.");
 
-console.log(`Demo flow passed: ${completed.trait.code}, ${completed.recommendations.map((book) => book.title).join(", ")}.`);
+console.log(`Demo flow passed: ${completed.trait.code}, ${finalized.recommendations.map((book) => book.title).join(", ")}.`);

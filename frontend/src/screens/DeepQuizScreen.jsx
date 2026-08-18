@@ -3,7 +3,7 @@ import Button from '../components/Button'
 import { STEP } from '../constants'
 import './DeepQuizScreen.css'
 
-function DeepQuizScreen({ onDeepComplete, onGoTo, firstStagePreferredFeatureCodes = [] }) {
+function DeepQuizScreen({ onDeepComplete, onGoTo, firstStagePreferredFeatureCodes = [], sessionId }) {
   const [questions, setQuestions] = useState([])
   const [answers, setAnswers] = useState({})
   const [step, setStep] = useState(0)
@@ -68,16 +68,18 @@ function DeepQuizScreen({ onDeepComplete, onGoTo, firstStagePreferredFeatureCode
     setStatus('submitting')
     setError('')
     try {
-      const response = await fetch('/api/recommendations/preview', {
+      // 1차+2차를 합친 최종 조건으로 여기서 딱 한 번 추천을 확정 저장한다.
+      // 이 결과가 화면에도 뜨고, QR로 저장되는 결과와도 항상 같은 값이다.
+      const response = await fetch(`/api/sessions/${sessionId}/finalize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ preferredFeatureCodes, avoidedFeatureCodes, limit: 5 }),
+        body: JSON.stringify({ preferredFeatureCodes, avoidedFeatureCodes, limit: 3 }),
       })
       if (!response.ok) {
         throw new Error('추천 데이터를 준비하지 못했어요.')
       }
       const payload = await response.json()
-      onDeepComplete(Array.isArray(payload.recommendations) ? payload.recommendations : [])
+      onDeepComplete(Array.isArray(payload.recommendations) ? payload.recommendations : [], payload.publicCode)
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : '추천 데이터를 준비하지 못했어요.')
       setStatus('ready')

@@ -317,67 +317,153 @@ async function resolveTraitCode(database: postgres.Sql, sessionId: string, ruleB
   }
 }
 
+// 1차(12문항) 완료 시점엔 성향 카드만 계산한다 — 추천 도서는 2차(정밀 조건)까지 마쳐야
+// 확정되므로 여기서 계산/저장하지 않는다(계산해봤자 2차 완료 시 항상 버려지고, publicCode도
+// 2차 결과와 어긋나는 값이 발급되는 문제가 있었다). /api/sessions/:id/finalize 참고.
 app.post("/api/sessions/:id/complete", async (request, reply) => {
   const database = requireDatabase(reply);
   if (!database) return;
   const { id: sessionId } = request.params as { id: string };
+
+  const attempts = await database<{ id: string; dimensionSetId: string; ruleSetId: string }[]>`
+    select attempt.id, attempt.dimension_set_id as "dimensionSetId", rule_set.id as "ruleSetId"
+    from recommendation.quiz_attempts as attempt
+    join quiz.scoring_rule_sets as rule_set on rule_set.quiz_version_id = attempt.quiz_version_id and rule_set.status = 'active'
+    where attempt.session_id = ${sessionId} and attempt.status = 'in_progress'
+  `;
+  if (attempts.length !== 1) return reply.code(422).send({ error: "session_not_in_progress" });
+
+  const responses = await database<{ dimensionCode: string; score: number }[]>`
+    select question.dimension_code as "dimensionCode", (option.value ->> 'score')::int as score
+    from recommendation.quiz_responses as response
+    join quiz.questions as question on question.id = response.question_id
+    join lateral jsonb_array_elements_text(response.selected_option_ids) as selected(option_id) on true
+    join quiz.question_options as option on option.id::text = selected.option_id
+    where response.attempt_id = ${attempts[0].id} and response.superseded_at is null
+    order by question.display_order
+  `;
+  if (responses.length !== 12) return reply.code(422).send({ error: "incomplete_responses" });
+
+  const totals = Object.fromEntries(Object.keys(firstStageDimensionLabels).map((code) => [code, { total: 0, count: 0 }]));
+  for (const response of responses) {
+    const dimension = totals[response.dimensionCode as keyof typeof totals];
+    if (!dimension) return reply.code(422).send({ error: "invalid_dimension" });
+    dimension.total += response.score;
+    dimension.count += 1;
+  }
+  const scores = Object.fromEntries(Object.entries(totals).map(([code, total]) => [code, Math.round((total.total / total.count) * 100)]));
+  const ruleBasedCode = ruleBasedCodeFromScores(scores);
+  // AI 호출(느릴 수 있음)은 트랜잭션 밖에서 수행한다 — 커넥션을 오래 붙잡지 않기 위함.
+  const traitCode = await resolveTraitCode(database, sessionId, ruleBasedCode);
+  const axes = computeAxes(traitCode, scores);
+  const trait = buildTrait(traitCode, axes);
+  const preferredFeatureCodes = firstStageFeatureCodes(scores);
+
   const result = await database.begin(async (transaction) => {
-    const attempts = await transaction<{ id: string; dimensionSetId: string; ruleSetId: string }[]>`
-      select attempt.id, attempt.dimension_set_id as "dimensionSetId", rule_set.id as "ruleSetId"
-      from recommendation.quiz_attempts as attempt
-      join quiz.scoring_rule_sets as rule_set on rule_set.quiz_version_id = attempt.quiz_version_id and rule_set.status = 'active'
-      where attempt.session_id = ${sessionId} and attempt.status = 'in_progress'
+    const stillInProgress = await transaction<{ id: string }[]>`
+      select id from recommendation.quiz_attempts where id = ${attempts[0].id} and status = 'in_progress'
     `;
-    if (attempts.length !== 1) return { error: "session_not_in_progress" as const };
-    const responses = await transaction<{ dimensionCode: string; score: number }[]>`
-      select question.dimension_code as "dimensionCode", (option.value ->> 'score')::int as score
-      from recommendation.quiz_responses as response
-      join quiz.questions as question on question.id = response.question_id
-      join lateral jsonb_array_elements_text(response.selected_option_ids) as selected(option_id) on true
-      join quiz.question_options as option on option.id::text = selected.option_id
-      where response.attempt_id = ${attempts[0].id} and response.superseded_at is null
-      order by question.display_order
-    `;
-    if (responses.length !== 12) return { error: "incomplete_responses" as const };
-    const totals = Object.fromEntries(Object.keys(firstStageDimensionLabels).map((code) => [code, { total: 0, count: 0 }]));
-    for (const response of responses) {
-      const dimension = totals[response.dimensionCode as keyof typeof totals];
-      if (!dimension) return { error: "invalid_dimension" as const };
-      dimension.total += response.score;
-      dimension.count += 1;
-    }
-    const scores = Object.fromEntries(Object.entries(totals).map(([code, total]) => [code, Math.round((total.total / total.count) * 100)]));
-    const ruleBasedCode = ruleBasedCodeFromScores(scores);
-    const traitCode = await resolveTraitCode(database, sessionId, ruleBasedCode);
-    const axes = computeAxes(traitCode, scores);
-    const trait = buildTrait(traitCode, axes);
-    const preferredFeatureCodes = firstStageFeatureCodes(scores);
-    const recommendationResult = await findRecommendations(transaction, {
-      preferredFeatureCodes, avoidedFeatureCodes: [], limit: 3,
-    });
-    if (recommendationResult.recommendations.length !== 3) return { error: "insufficient_candidates" as const };
-    const snapshots = await transaction<{ id: string }[]>`
+    if (stillInProgress.length !== 1) return { error: "session_not_in_progress" as const };
+    await transaction`
       insert into recommendation.preference_profile_snapshots (
         session_id, quiz_attempt_id, rule_set_id, access_tier, dimension_set_id, sequence, dimension_scores, confidence_scores, trait_code
       ) values (
         ${sessionId}, ${attempts[0].id}, ${attempts[0].ruleSetId}, 'free', ${attempts[0].dimensionSetId}, 1,
         ${transaction.json(scores)}, ${transaction.json(Object.fromEntries(Object.keys(scores).map((code) => [code, 1])))}, ${traitCode}
-      ) returning id
+      )
     `;
-    const engines = await transaction<{ id: string }[]>`
-      select id from recommendation.engine_versions where version = 'first-stage-demo-v1' and status = 'active'
+    await transaction`update recommendation.quiz_attempts set status = 'completed', completed_at = now() where id = ${attempts[0].id}`;
+    return {};
+  });
+  if ("error" in result) return reply.code(422).send(result);
+
+  return { trait, preferredFeatureCodes };
+});
+
+// 2차(정밀 조건) 완료 시점 — 1차+2차를 합친 최종 조건으로 추천 도서를 계산하고,
+// 이때 딱 한 번 publicCode를 발급한다. 그래서 화면에서 본 결과와 QR로 저장한 결과가 항상 같다.
+// 이미 완료된 세션이면(중복 제출 등) 새로 계산하지 않고 저장된 결과를 그대로 반환한다.
+app.post("/api/sessions/:id/finalize", async (request, reply) => {
+  const database = requireDatabase(reply);
+  if (!database) return;
+  const { id: sessionId } = request.params as { id: string };
+
+  const recommendationRequest = parseRecommendationRequest(request.body);
+  if (!recommendationRequest) {
+    return reply.code(400).send({ error: "invalid_recommendation_request" });
+  }
+
+  const existing = await database<{ publicCode: string }[]>`
+    select result_code.public_code as "publicCode"
+    from recommendation.public_result_codes as result_code
+    join recommendation.recommendation_runs as run on run.session_id = result_code.session_id and run.status = 'completed'
+    where result_code.session_id = ${sessionId}
+    limit 1
+  `;
+  if (existing.length === 1) {
+    const rows = await database<{
+      role: "read_now" | "stretch" | "discovery"; workId: string; editionId: string; title: string; author: string | null;
+      description: string | null; totalScore: number; explanation: string | null;
+    }[]>`
+      select item.role, work.id as "workId", item.edition_id as "editionId", work.canonical_title as title,
+        string_agg(distinct contributor.display_name, ', ') as author, work.description,
+        item.total_score::float as "totalScore", rendering.body as explanation
+      from recommendation.public_result_codes as result_code
+      join recommendation.recommendation_runs as run on run.session_id = result_code.session_id and run.status = 'completed'
+      join recommendation.recommendation_items as item on item.run_id = run.id
+      join catalog.works as work on work.id = item.work_id
+      left join catalog.work_contributors as credit on credit.work_id = work.id and credit.role_code = 'author'
+      left join catalog.contributors as contributor on contributor.id = credit.contributor_id
+      left join recommendation.explanation_renderings as rendering on rendering.item_id = item.id
+      where result_code.session_id = ${sessionId}
+      group by item.id, work.id, rendering.body
+      order by item.display_order
     `;
-    if (engines.length !== 1) return { error: "demo_engine_unavailable" as const };
+    return {
+      publicCode: existing[0].publicCode,
+      recommendations: rows.map((row) => ({
+        role: row.role, workId: row.workId, editionId: row.editionId, title: row.title, author: row.author,
+        description: row.description, score: row.totalScore, explanation: row.explanation ?? "",
+      })),
+    };
+  }
+
+  const snapshots = await database<{ id: string; dimensionSetId: string }[]>`
+    select id, dimension_set_id as "dimensionSetId"
+    from recommendation.preference_profile_snapshots
+    where session_id = ${sessionId}
+    order by sequence desc
+    limit 1
+  `;
+  const attempts = await database<{ id: string }[]>`
+    select id from recommendation.quiz_attempts where session_id = ${sessionId} and status = 'completed' order by completed_at desc limit 1
+  `;
+  if (snapshots.length !== 1 || attempts.length !== 1) {
+    return reply.code(422).send({ error: "first_stage_not_completed" });
+  }
+
+  // 추천 후보 검색 + 이유 생성 AI 호출(병렬)도 트랜잭션 밖에서 수행한다.
+  const recommendationResult = await findRecommendations(database, { ...recommendationRequest, limit: 3 });
+  if (recommendationResult.recommendations.length !== 3) return reply.code(422).send({ error: "insufficient_candidates" });
+
+  const engines = await database<{ id: string }[]>`
+    select id from recommendation.engine_versions where version = 'first-stage-demo-v1' and status = 'active'
+  `;
+  if (engines.length !== 1) return reply.code(422).send({ error: "demo_engine_unavailable" });
+
+  const publicCode = randomBytes(5).toString("hex").toUpperCase();
+  const roles = ["read_now", "stretch", "discovery"] as const;
+
+  await database.begin(async (transaction) => {
     const runs = await transaction<{ id: string }[]>`
       insert into recommendation.recommendation_runs (
         session_id, quiz_attempt_id, profile_snapshot_id, engine_version_id, access_tier, dimension_set_id,
         requested_item_count, status, completed_at, candidate_count
       ) values (
-        ${sessionId}, ${attempts[0].id}, ${snapshots[0].id}, ${engines[0].id}, 'free', ${attempts[0].dimensionSetId},
+        ${sessionId}, ${attempts[0].id}, ${snapshots[0].id}, ${engines[0].id}, 'free', ${snapshots[0].dimensionSetId},
         3, 'completed', now(), ${recommendationResult.recommendations.length}
       ) returning id
     `;
-    const roles = ["read_now", "stretch", "discovery"] as const;
     for (const [index, recommendation] of recommendationResult.recommendations.entries()) {
       const items = await transaction<{ id: string }[]>`
         insert into recommendation.recommendation_items (
@@ -393,24 +479,19 @@ app.post("/api/sessions/:id/complete", async (request, reply) => {
           ${createHash("sha256").update(`${sessionId}:${recommendation.workId}`).digest("hex")})
       `;
     }
-    const publicCode = randomBytes(5).toString("hex").toUpperCase();
     await transaction`
       insert into recommendation.public_result_codes (session_id, public_code) values (${sessionId}, ${publicCode})
       on conflict (session_id) do update set public_code = excluded.public_code
     `;
-    await transaction`update recommendation.quiz_attempts set status = 'completed', completed_at = now() where id = ${attempts[0].id}`;
-    return {
-      publicCode,
-      trait,
-      preferredFeatureCodes,
-      recommendations: recommendationResult.recommendations.map((recommendation, index) => ({
-        role: roles[index],
-        ...recommendation,
-      })),
-    };
   });
-  if ("error" in result) return reply.code(422).send(result);
-  return result;
+
+  return {
+    publicCode,
+    recommendations: recommendationResult.recommendations.map((recommendation, index) => ({
+      role: roles[index],
+      ...recommendation,
+    })),
+  };
 });
 
 app.get("/api/results/:publicCode", async (request, reply) => {

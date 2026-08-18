@@ -29,6 +29,7 @@ function App() {
   const [completedTrait, setCompletedTrait] = useState(null)
   const [firstStagePreferredFeatureCodes, setFirstStagePreferredFeatureCodes] = useState([])
   const [publicCode, setPublicCode] = useState('')
+  const [sessionId, setSessionId] = useState('')
 
   useEffect(() => {
     const syncToolScreen = () => setToolScreen(window.location.hash)
@@ -44,6 +45,7 @@ function App() {
       setCompletedTrait(null)
       setFirstStagePreferredFeatureCodes([])
       setPublicCode('')
+      setSessionId('')
     }
     setStep(index)
   }
@@ -52,6 +54,7 @@ function App() {
     setCompletedTrait(null)
     setFirstStagePreferredFeatureCodes([])
     setPublicCode('')
+    setSessionId('')
     setStep(0)
   }
   const retakeQuiz = () => {
@@ -59,18 +62,25 @@ function App() {
     setCompletedTrait(null)
     setFirstStagePreferredFeatureCodes([])
     setPublicCode('')
+    setSessionId('')
     setStep(1)
   }
-  const completeDeepQuiz = (nextRecommendations) => {
+  const completeDeepQuiz = (nextRecommendations, nextPublicCode) => {
     setRecommendations(nextRecommendations)
+    setPublicCode(typeof nextPublicCode === 'string' ? nextPublicCode : '')
     setStep(STEP.BOOKS)
   }
-  const completeFirstStageQuiz = (result) => {
-    setRecommendations(Array.isArray(result.recommendations) ? result.recommendations : [])
+  // 1차(12문항) 답변이 다 들어가는 순간 호출된다 — 아직 분석 전이라, 여기서는
+  // 로딩 화면으로 넘어가기만 하고 실제 AI 호출은 LoadingScreen이 담당한다.
+  const beginFirstStageAnalysis = (completedSessionId) => {
+    setSessionId(completedSessionId)
+    setStep(STEP.LOADING)
+  }
+  // LoadingScreen이 실제 분석을 마치고 결과를 넘겨줄 때 호출된다.
+  const finishFirstStageAnalysis = (result) => {
     setCompletedTrait({ emoji: '📚', ...result.trait })
     setFirstStagePreferredFeatureCodes(Array.isArray(result.preferredFeatureCodes) ? result.preferredFeatureCodes : [])
-    setPublicCode(typeof result.publicCode === 'string' ? result.publicCode : '')
-    setStep(STEP.LOADING)
+    setStep(STEP.TRAIT)
   }
   const openSetup = () => {
     window.location.hash = 'setup'
@@ -103,12 +113,14 @@ function App() {
       onRestart={restart}
       onGoTo={goTo}
       onOpenSetup={openSetup}
-      onFirstStageComplete={completeFirstStageQuiz}
+      onFirstStageComplete={beginFirstStageAnalysis}
+      onAnalysisComplete={finishFirstStageAnalysis}
       onRetake={retakeQuiz}
       onDeepComplete={completeDeepQuiz}
       recommendations={recommendations}
       firstStagePreferredFeatureCodes={firstStagePreferredFeatureCodes}
       publicCode={publicCode}
+      sessionId={sessionId}
       trait={completedTrait}
     />
   )

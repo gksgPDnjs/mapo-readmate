@@ -80,10 +80,9 @@ function ChatScreen({ onFirstStageComplete }) {
       setStep(nextStep)
 
       if (nextStep >= questions.length) {
-        const completeResponse = await fetch(`/api/sessions/${sessionId}/complete`, { method: 'POST' })
-        if (!completeResponse.ok) throw new Error('성향 분석을 완료하지 못했어요.')
-        const result = await completeResponse.json()
-        setTimeout(() => onFirstStageComplete(result), 1000)
+        // 실제 분석(AI 호출)은 LoadingScreen이 넘겨받아 처리한다 — 여기서 더 기다리지 않고
+        // 바로 로딩 화면으로 넘어가야, 대기 중인 동안 채팅 화면이 멈춘 것처럼 보이지 않는다.
+        setTimeout(() => onFirstStageComplete(sessionId), 500)
         return
       }
       setStatus('ready')
