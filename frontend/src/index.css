@@ -16,6 +16,9 @@
   background: var(--color-bg);
   color-scheme: light;
   -webkit-font-smoothing: antialiased;
+  /* 한글 단어가 줄바꿈 시 음절 단위로 이상하게 쪼개지는 것을 막는다
+     (예: "3권을" -> "3권" / "을"로 잘리는 문제). */
+  word-break: keep-all;
 }
 
 * {
