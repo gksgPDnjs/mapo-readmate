@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Button from '../components/Button'
 import { STEP } from '../constants'
+import '../screens/LoadingScreen.css'
 import './DeepQuizScreen.css'
 
 function DeepQuizScreen({ onDeepComplete, onGoTo, firstStagePreferredFeatureCodes = [], sessionId }) {
@@ -105,6 +106,25 @@ function DeepQuizScreen({ onDeepComplete, onGoTo, firstStagePreferredFeatureCode
     )
   }
 
+  if (status === 'submitting') {
+    return (
+      <main className="screen deep-quiz-status">
+        <div className="loading-content">
+          <div className="loading-icon" aria-hidden="true">📚</div>
+          <div className="loading-dots" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div className="screen-copy">
+            <h2>추천 도서를 고르고 있어요</h2>
+            <p>AI가 지금까지 답변을 바탕으로 딱 맞는 책 3권을 찾고 있어요</p>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main className="screen deep-quiz">
       <div className="deep-quiz-progress">정밀 추천 {step + 1} / {questions.length}</div>
@@ -133,6 +153,7 @@ function DeepQuizScreen({ onDeepComplete, onGoTo, firstStagePreferredFeatureCode
           {step === questions.length - 1 ? '추천 받기' : '다음'}
         </Button>
       </div>
+      {error && <p className="deep-quiz-error">{error}</p>}
     </main>
   )
 }
